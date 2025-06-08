@@ -42,3 +42,6 @@ class ConfigurationService(BaseService):
             return default_config
         except Exception as e:
             raise Exception(f"Failed to create {self.CONFIG_FILE_PATH}: {str(e)}")
+
+    def shutdown(self):
+        self._logger.info("Shutting down.")

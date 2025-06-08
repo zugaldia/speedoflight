@@ -85,3 +85,6 @@ class AgentService(BaseService):
 
         self._logger.info("Agent run completed.")
         self.safe_emit(AGENT_RUN_COMPLETED_SIGNAL)
+
+    def shutdown(self):
+        self._logger.info("Shutting down.")
