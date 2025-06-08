@@ -1,0 +1,6 @@
+__pycache__/
+.vscode/
+config.json
+profiles/
+TODO.md
+venv/

@@ -1,0 +1,10 @@
+PyGObject==3.52.3
+
+langchain==0.3.25
+langchain-anthropic==0.3.15
+langchain-google-genai==2.1.5
+langchain-ollama==0.3.3
+langchain-openai==0.3.21
+langchain-mcp-adapters==0.1.7
+
+langgraph==0.4.8
