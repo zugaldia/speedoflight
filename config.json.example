@@ -1,0 +1,4 @@
+{
+  "model": "ollama:llama3.2",
+  "mcp_servers": {}
+}
