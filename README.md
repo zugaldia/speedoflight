@@ -2,7 +2,8 @@
 
 Speed of Light (SOL) is a native AI Agent for the Linux desktop.
 
-In this context, an Agent is simply an LLM using tools in a loop. For a longer explanation about Agents, [this is a good introduction](https://huggingface.co/docs/smolagents/en/conceptual_guides/intro_agents).
+![SOL Screenshot](assets/sol-firecrawl-elevenlabs.png)
+*Example of SOL running the Firecrawl and ElevenLabs MCP servers.*
 
 Features:
 - Support for both local (default) and cloud providers.
@@ -61,6 +62,8 @@ The configuration file has the following structure:
   }
 }
 ```
+
+Note that MCP servers are optional. The application works with no servers configured (`"mcp_servers": {}`), in which case you would be talking to the LLM directly without any additional tools.
 
 ## Extending the app
 
