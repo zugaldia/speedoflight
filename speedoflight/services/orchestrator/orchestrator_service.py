@@ -23,7 +23,7 @@ from speedoflight.utils import generate_uuid
 class OrchestratorService(BaseService):
     __gsignals__ = {
         AGENT_MESSAGE_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, (GBaseMessage,)),
-        AGENT_READY_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, ()),
+        AGENT_READY_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, (int,)),
         AGENT_RUN_STARTED_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, ()),
         AGENT_RUN_COMPLETED_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, ()),
     }
@@ -83,9 +83,9 @@ class OrchestratorService(BaseService):
         except Exception as e:
             self._logger.error(f"Error processing agent update: {e}")
 
-    def _on_agent_ready(self, agent_service):
+    def _on_agent_ready(self, agent_service, tool_count: int):
         self._logger.info("Agent is ready.")
-        self.safe_emit(AGENT_READY_SIGNAL)
+        self.safe_emit(AGENT_READY_SIGNAL, tool_count)
 
     def _on_agent_run_started(self, agent_service):
         self._logger.info("Agent run started.")

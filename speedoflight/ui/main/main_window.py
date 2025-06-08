@@ -96,9 +96,9 @@ class MainWindow(Adw.ApplicationWindow):
     def _on_agent_message(self, orchestrator, message: GBaseMessage):
         self._chat_widget.add_message(message)
 
-    def _on_agent_ready(self, orchestrator):
+    def _on_agent_ready(self, orchestrator, tool_count: int):
         self.status_widget.set_status(
-            "Ready. (Enter to submit, Shift+Enter for a new line.)"
+            f"Ready ({tool_count} tools). (Enter to submit, Shift+Enter for a new line.)"
         )
         self.status_widget.set_activity_mode(False)
         self.input_widget.set_enabled(True)

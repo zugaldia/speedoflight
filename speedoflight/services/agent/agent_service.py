@@ -24,7 +24,7 @@ from speedoflight.services.configuration.configuration_service import (
 class AgentService(BaseService):
     __gsignals__ = {
         AGENT_UPDATE_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, (str,)),
-        AGENT_READY_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, ()),
+        AGENT_READY_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, (int,)),
         AGENT_RUN_STARTED_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, ()),
         AGENT_RUN_COMPLETED_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, ()),
     }
@@ -55,7 +55,7 @@ class AgentService(BaseService):
             debug=False,
         )
         self._logger.info("Agent is ready.")
-        self.safe_emit(AGENT_READY_SIGNAL)
+        self.safe_emit(AGENT_READY_SIGNAL, len(self._mcp_tools))
 
     async def stream_async(self, request: AgentRequest):
         if self._agent is None:
