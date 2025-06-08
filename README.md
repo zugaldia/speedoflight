@@ -3,7 +3,7 @@
 Speed of Light (SOL) is a native AI Agent for the Linux desktop.
 
 ![SOL Screenshot](assets/sol-firecrawl-elevenlabs.png)
-*Example of SOL running the Firecrawl and ElevenLabs MCP servers.*
+<p align="center"><em>Example of SOL running the Firecrawl and ElevenLabs MCP servers.</em></p>
 
 Features:
 - Support for both local (default) and cloud providers.
