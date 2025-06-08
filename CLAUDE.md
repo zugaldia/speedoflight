@@ -6,8 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Development Commands
 ```bash
-make lint       # Run ruff linter on speedoflight/
-make typecheck  # Run mypy type checker on speedoflight/
+make lint         # Run ruff linter on speedoflight/
+make format-check # Run ruff format check on speedoflight/
+make format-diff  # Show ruff format changes without applying them
+make typecheck    # Run mypy type checker on speedoflight/
 ```
 
 ## Code Style
