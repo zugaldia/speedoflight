@@ -5,11 +5,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ### Development Commands
+You should run both after making changes to the codebase (also checked by CI):
+
 ```bash
 make lint         # Run ruff linter on speedoflight/
 make format-check # Run ruff format check on speedoflight/
-make format-diff  # Show ruff format changes without applying them
-make typecheck    # Run mypy type checker on speedoflight/
 ```
 
 ## Code Style
@@ -18,8 +18,7 @@ make typecheck    # Run mypy type checker on speedoflight/
 - When comments are recommended, keep them short
 
 ## Architecture Overview
-
-Speed of Light is a GTK4-based desktop AI agent application with a service-oriented architecture.
+Speed of Light is a GTK4-based desktop AI agent application with a service-oriented architecture developed with Python.
 
 ### Core Services Pattern
 All services inherit from `BaseService` (base_service.py) which provides:
