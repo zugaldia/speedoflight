@@ -1,17 +1,16 @@
 # Speed of Light
 
-Speed of Light (SOL) is a native AI Agent for the Linux desktop.
-
+Speed of Light (SOL) is a native AI Agent for the Linux desktop:
 <div align="center">
   <img src="assets/sol-firecrawl-elevenlabs.png" alt="SOL Screenshot">
   <br><em>Example of SOL running the Firecrawl and ElevenLabs MCP servers.</em>
 </div>
 
-Features:
-- Support for both local (default) and cloud providers.
-- Extensible via [Model Context Protocol](https://modelcontextprotocol.io) (MCP) servers.
-- Built-in tools that integrate with the Linux desktop (e.g., clipboard access).
-- Developed with GNOME Adwaita for a modern look and compatibility with any desktop environment.
+## Features
+- 🏠 Support for both local (default) and cloud providers.
+- 🔧 Extensible via [Model Context Protocol](https://modelcontextprotocol.io) (MCP) servers.
+- 🐧 Built-in tools that integrate with the Linux desktop (e.g., clipboard access).
+- 🎨 Developed with GNOME Adwaita for a modern look and compatibility with any desktop environment.
 
 ## Launch the app
 
