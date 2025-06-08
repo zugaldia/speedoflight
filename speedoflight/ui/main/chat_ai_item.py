@@ -45,7 +45,7 @@ class AIMessageWidget(Gtk.Box, ChatItemMixin):
                     first_line = first_line[:47] + "..."
 
                 tool_expander = Adw.ExpanderRow()
-                tool_expander.set_title(f"{tool_name} request ({i+1}/{total_tools})")
+                tool_expander.set_title(f"{tool_name} request ({i + 1}/{total_tools})")
                 tool_expander.set_subtitle(first_line)
 
                 # Add tool call icon prefix
