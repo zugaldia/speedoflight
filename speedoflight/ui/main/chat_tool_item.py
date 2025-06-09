@@ -1,4 +1,30 @@
+"""
+
+Response with an image:
+
+{
+    "messages": [
+        ToolMessage(
+            content="",
+            name="StaticMapImageTool",
+            id="67a975aa-3cd3-453f-89b4-94508aade1be",
+            tool_call_id="call_R1UsPmaiaQRTAWwYarzMfDP5",
+artifact=[
+    ImageContent(
+        type="image",
+        data="...",
+        mimeType="image/png",
+        annotations=None,
+    )
+],
+        )
+    ]
+}
+
+"""
+
 from gi.repository import Adw, Gtk, Pango  # type: ignore
+from langchain_core.messages import ToolMessage
 
 from speedoflight.constants import DEFAULT_MARGIN
 from speedoflight.models import GBaseMessage

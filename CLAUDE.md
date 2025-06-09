@@ -16,9 +16,12 @@ make format-check # Run ruff format check on speedoflight/
 - Use type annotation whenever possible
 - Do not add comments for obvious behavior
 - When comments are recommended, keep them short
+- Avoid relative imports, always use absolute imports
 
 ## Architecture Overview
-Speed of Light is a GTK4-based desktop AI agent application with a service-oriented architecture developed with Python.
+- Speed of Light is a GTK4-based Linux desktop application
+- It has service-oriented architecture developed with Python.
+- The UI follows the Model-View-ViewModel (MVVM) pattern.
 
 ### Core Services Pattern
 All services inherit from `BaseService` (base_service.py) which provides:

@@ -71,7 +71,6 @@ class OrchestratorService(BaseService):
             # Extract messages from the agent update data
             # E.g. AI response: {"agent": {"messages": [AIMessage(...)]}}
             # E.g. tool response: {'tools': {'messages': [ToolMessage(...)]}}
-            self._logger.info("Agent update received.")
             update_response = AgentUpdateResponse.decode(encoded_object)
             for node_name, node_data in update_response.data.items():
                 if isinstance(node_data, dict) and "messages" in node_data:
@@ -80,6 +79,8 @@ class OrchestratorService(BaseService):
                         g_message = GBaseMessage(data=message)
                         self._logger.info(f"Emitting {node_name} message.")
                         self.safe_emit(AGENT_MESSAGE_SIGNAL, g_message)
+                else:
+                    self._logger.warning(f"Unexpected node data format: {node_data}")
         except Exception as e:
             self._logger.error(f"Error processing agent update: {e}")
 

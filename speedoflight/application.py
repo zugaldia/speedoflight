@@ -12,7 +12,10 @@ from speedoflight.services.agent.agent_service import AgentService  # noqa: E402
 from speedoflight.services.configuration.configuration_service import (  # noqa: E402
     ConfigurationService,
 )
-from speedoflight.services.orchestrator.orchestrator_service import OrchestratorService  # noqa: E402
+from speedoflight.services.orchestrator.orchestrator_service import (  # noqa: E402
+    OrchestratorService,
+)
+from speedoflight.ui.main.main_view_model import MainViewModel  # noqa: E402
 from speedoflight.ui.main.main_window import MainWindow  # noqa: E402
 
 
@@ -43,9 +46,13 @@ class SolApplication(Adw.Application):
             configuration=self._configuration, agent=self._agent
         )
 
+        # View models
+        self._main_view_model = MainViewModel(orchestrator=self._orchestrator)
+
         # Main window
         self._main_window = MainWindow(
-            application=self, orchestrator=self._orchestrator
+            application=self,
+            view_model=self._main_view_model,
         )
 
     def do_activate(self):
@@ -54,6 +61,7 @@ class SolApplication(Adw.Application):
 
     def do_shutdown(self):
         self._logger.info("Shutting down.")
+        self._main_view_model.shutdown()
         self._orchestrator.shutdown()
         self._agent.shutdown()
         self._configuration.shutdown()
