@@ -5,11 +5,11 @@ from langchain_core.messages import HumanMessage
 
 from speedoflight.constants import AGENT_MESSAGE_SIGNAL, APPLICATION_NAME
 from speedoflight.models import GBaseMessage
-from speedoflight.ui.main.chat_widget import ChatWidget
-from speedoflight.ui.main.input_widget import InputWidget
+from speedoflight.ui.chat.chat_widget import ChatWidget
+from speedoflight.ui.input.input_widget import InputWidget
 from speedoflight.ui.main.main_view_model import MainViewModel
 from speedoflight.ui.main.main_view_state import MainViewState
-from speedoflight.ui.main.status_widget import StatusWidget
+from speedoflight.ui.status.status_widget import StatusWidget
 
 
 class MainWindow(Adw.ApplicationWindow):

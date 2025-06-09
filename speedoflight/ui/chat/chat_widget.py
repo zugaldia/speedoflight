@@ -5,9 +5,9 @@ from gi.repository import Gio, GLib, Gtk  # type: ignore
 
 from speedoflight.constants import DEFAULT_MARGIN
 from speedoflight.models import GBaseMessage, MessageRole
-from speedoflight.ui.main.chat_ai_item import AIMessageWidget
-from speedoflight.ui.main.chat_human_item import HumanMessageWidget
-from speedoflight.ui.main.chat_tool_item import ToolMessageWidget
+from speedoflight.ui.chat.chat_ai_item import AIMessageWidget
+from speedoflight.ui.chat.chat_human_item import HumanMessageWidget
+from speedoflight.ui.chat.chat_tool_item import ToolMessageWidget
 
 
 class ChatWidget(Gtk.ListView):

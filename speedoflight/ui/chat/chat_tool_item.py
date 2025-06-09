@@ -24,11 +24,10 @@ artifact=[
 """
 
 from gi.repository import Adw, Gtk, Pango  # type: ignore
-from langchain_core.messages import ToolMessage
 
 from speedoflight.constants import DEFAULT_MARGIN
 from speedoflight.models import GBaseMessage
-from speedoflight.ui.main.chat_item_mixin import ChatItemMixin
+from speedoflight.ui.chat.chat_item_mixin import ChatItemMixin
 
 
 class ToolMessageWidget(Adw.ExpanderRow, ChatItemMixin):
