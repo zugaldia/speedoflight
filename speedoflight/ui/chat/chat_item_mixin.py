@@ -31,3 +31,23 @@ class ChatItemMixin:
                     item_type = item.get("type")
                     self._logger.info(f"Type {item_type} not currently supported.")
         return lines
+
+    def extract_artifacts(self, message: BaseMessage) -> list:
+        if not hasattr(message, "artifact") or not message.artifact:
+            return []
+
+        artifacts = (
+            message.artifact
+            if isinstance(message.artifact, list)
+            else [message.artifact]
+        )
+
+        supported_artifacts = []
+        for artifact in artifacts:
+            if hasattr(artifact, "type") and artifact.type == "image":
+                supported_artifacts.append(artifact)
+            else:
+                artifact_type = getattr(artifact, "type", "unknown")
+                self._logger.warning(f"Artifact {artifact_type} not supported.")
+
+        return supported_artifacts
