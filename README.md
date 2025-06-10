@@ -2,8 +2,8 @@
 
 Speed of Light (SOL) is a native AI Agent for the Linux desktop:
 <div align="center">
-  <img src="assets/sol-firecrawl-elevenlabs.png" alt="SOL Screenshot">
-  <br><em>Example of SOL running the Firecrawl and ElevenLabs MCP servers.</em>
+  <img src="assets/sol-mapbox.png" alt="SOL Screenshot">
+  <br><em>Example of SOL running the Mapbox MCP server.</em>
 </div>
 
 ## Features
@@ -14,9 +14,11 @@ Speed of Light (SOL) is a native AI Agent for the Linux desktop:
 
 ## Launch the app
 
-Install the dependencies in a virtual environment and launch the app with Python:
+Clone this repo, install the dependencies in a virtual environment, and launch the app with Python:
 
 ```bash
+$ git clone git@github.com:zugaldia/speedoflight.git
+$ cd speedoflight
 $ python3 -m venv venv
 $ source venv/bin/activate
 $ pip3 install -r requirements.txt
@@ -45,23 +47,22 @@ The configuration file has the following structure:
 
 - **`model`**: The LLM model to use. Format is `provider:model_name`. Examples:
   - `ollama:llama3.2` (default - requires local Ollama installation)
-  - `anthropic:claude-opus-4-20250514` (requires `ANTHROPIC_API_KEY` environment variable)
-  - `google_genai:gemini-2.5-pro-preview-06-05` (requires `GOOGLE_API_KEY` environment variable)
+  - `anthropic:claude-sonnet-4-20250514` or `anthropic:claude-opus-4-20250514` (requires `ANTHROPIC_API_KEY` environment variable)
+  - `google_genai:gemini-2.5-flash-preview-05-20` or `google_genai:gemini-2.5-pro-preview-06-05` (requires `GOOGLE_API_KEY` environment variable)
   - `openai:gpt-4.1` (requires `OPENAI_API_KEY` environment variable)
 
 - **`agent_debug`**: Enables debug mode in the agent (default: `false`). When enabled, more detailed information will be logged to the terminal, which is useful for troubleshooting.
 
-- **`mcp_servers`**: Configuration for MCP servers. This allows extending the agent with additional tools. For example, to add the Firecrawl MCP so that SOL can download websites and search the web, you would add the following:
+- **`mcp_servers`**: Configuration for MCP servers. This allows extending the agent with additional tools. For example, to add the [Mapbox MCP](https://github.com/mapbox/mcp-server) so that SOL can search for places and create maps, you would add the following:
 
 ```json
 {
-  ...
   "mcp_servers": {
-    "firecrawl": {
+    "mapbox": {
       "transport": "stdio",
-      "command": "npx",
-      "args": ["-y", "firecrawl-mcp"],
-      "env": {"FIRECRAWL_API_KEY": "[YOUR_KEY_GOES_HERE]"}
+      "command": "node",
+      "args": ["/path/to/mcp-server/dist/index.js"],
+      "env": {"MAPBOX_ACCESS_TOKEN": "[YOUR_MAPBOX_ACCESS_TOKEN_GOES_HERE]"}
     }
   }
 }
