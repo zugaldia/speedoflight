@@ -6,13 +6,11 @@ DEFAULT_SPACING = 10
 DEFAULT_MARGIN = 10
 
 # Agent Service Signals
-AGENT_UPDATE_SIGNAL = "agent-update"
+AGENT_UPDATE_AI_SIGNAL = "agent-update-ai"
+AGENT_UPDATE_TOOL_SIGNAL = "agent-update-tool"
 AGENT_READY_SIGNAL = "agent-ready"
 AGENT_RUN_STARTED_SIGNAL = "agent-run-started"
 AGENT_RUN_COMPLETED_SIGNAL = "agent-run-completed"
 
 # UI Signals
 SEND_MESSAGE_SIGNAL = "send-message"
-
-# Orchestrator Service Signals
-AGENT_MESSAGE_SIGNAL = "agent-message"

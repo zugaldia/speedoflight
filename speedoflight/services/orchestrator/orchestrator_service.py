@@ -5,13 +5,13 @@ from gi.repository import GObject  # type: ignore
 from langchain_core.messages import HumanMessage
 
 from speedoflight.constants import (
-    AGENT_MESSAGE_SIGNAL,
     AGENT_READY_SIGNAL,
     AGENT_RUN_COMPLETED_SIGNAL,
     AGENT_RUN_STARTED_SIGNAL,
-    AGENT_UPDATE_SIGNAL,
+    AGENT_UPDATE_AI_SIGNAL,
+    AGENT_UPDATE_TOOL_SIGNAL,
 )
-from speedoflight.models import AgentRequest, AgentUpdateResponse, GBaseMessage
+from speedoflight.models import AgentRequest
 from speedoflight.services.agent.agent_service import AgentService
 from speedoflight.services.base_service import BaseService
 from speedoflight.services.configuration.configuration_service import (
@@ -22,8 +22,9 @@ from speedoflight.utils import generate_uuid
 
 class OrchestratorService(BaseService):
     __gsignals__ = {
-        AGENT_MESSAGE_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, (GBaseMessage,)),
-        AGENT_READY_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, ()),
+        AGENT_UPDATE_AI_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, (str,)),
+        AGENT_UPDATE_TOOL_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, (str,)),
+        AGENT_READY_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, (int,)),
         AGENT_RUN_STARTED_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, ()),
         AGENT_RUN_COMPLETED_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, ()),
     }
@@ -40,7 +41,8 @@ class OrchestratorService(BaseService):
         self._session_id = generate_uuid()
 
         self._agent = agent
-        self._agent.connect(AGENT_UPDATE_SIGNAL, self._on_agent_update)
+        self._agent.connect(AGENT_UPDATE_AI_SIGNAL, self._on_agent_update_ai)
+        self._agent.connect(AGENT_UPDATE_TOOL_SIGNAL, self._on_agent_update_tool)
         self._agent.connect(AGENT_READY_SIGNAL, self._on_agent_ready)
         self._agent.connect(AGENT_RUN_STARTED_SIGNAL, self._on_agent_run_started)
         self._agent.connect(AGENT_RUN_COMPLETED_SIGNAL, self._on_agent_run_completed)
@@ -66,26 +68,17 @@ class OrchestratorService(BaseService):
         self._logger.info("Running agent.")
         asyncio.run_coroutine_threadsafe(self._agent.stream_async(request), self._loop)
 
-    def _on_agent_update(self, agent_service, encoded_object: str):
-        try:
-            # Extract messages from the agent update data
-            # E.g. AI response: {"agent": {"messages": [AIMessage(...)]}}
-            # E.g. tool response: {'tools': {'messages': [ToolMessage(...)]}}
-            self._logger.info("Agent update received.")
-            update_response = AgentUpdateResponse.decode(encoded_object)
-            for node_name, node_data in update_response.data.items():
-                if isinstance(node_data, dict) and "messages" in node_data:
-                    messages = node_data["messages"]
-                    for message in messages:
-                        g_message = GBaseMessage(data=message)
-                        self._logger.info(f"Emitting {node_name} message.")
-                        self.safe_emit(AGENT_MESSAGE_SIGNAL, g_message)
-        except Exception as e:
-            self._logger.error(f"Error processing agent update: {e}")
+    def _on_agent_update_ai(self, agent_service, encoded_message: str):
+        self._logger.info("Emitting AI message.")
+        self.safe_emit(AGENT_UPDATE_AI_SIGNAL, encoded_message)
 
-    def _on_agent_ready(self, agent_service):
+    def _on_agent_update_tool(self, agent_service, encoded_message: str):
+        self._logger.info("Emitting tool message.")
+        self.safe_emit(AGENT_UPDATE_TOOL_SIGNAL, encoded_message)
+
+    def _on_agent_ready(self, agent_service, tool_count: int):
         self._logger.info("Agent is ready.")
-        self.safe_emit(AGENT_READY_SIGNAL)
+        self.safe_emit(AGENT_READY_SIGNAL, tool_count)
 
     def _on_agent_run_started(self, agent_service):
         self._logger.info("Agent run started.")

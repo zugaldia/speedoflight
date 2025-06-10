@@ -9,6 +9,3 @@ format-check:
 
 format-diff:
 	ruff format --diff speedoflight/
-
-typecheck:
-	mypy speedoflight/

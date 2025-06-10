@@ -1,52 +1,47 @@
 import logging
-import random
 
-from gi.repository import Adw, Gdk, Gtk  # type: ignore
-from langchain_core.messages import HumanMessage
+from gi.repository import Adw, Gdk, GObject, Gtk  # type: ignore
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
 from speedoflight.constants import (
-    AGENT_MESSAGE_SIGNAL,
-    AGENT_READY_SIGNAL,
-    AGENT_RUN_COMPLETED_SIGNAL,
-    AGENT_RUN_STARTED_SIGNAL,
+    AGENT_UPDATE_AI_SIGNAL,
+    AGENT_UPDATE_TOOL_SIGNAL,
     APPLICATION_NAME,
 )
 from speedoflight.models import GBaseMessage
-from speedoflight.services.orchestrator.orchestrator_service import OrchestratorService
-from speedoflight.ui.main.chat_widget import ChatWidget
-from speedoflight.ui.main.input_widget import InputWidget
-from speedoflight.ui.main.status_widget import StatusWidget
+from speedoflight.ui.chat.chat_widget import ChatWidget
+from speedoflight.ui.input.input_widget import InputWidget
+from speedoflight.ui.main.main_view_model import MainViewModel
+from speedoflight.ui.main.main_view_state import MainViewState
+from speedoflight.ui.status.status_widget import StatusWidget
 
 
 class MainWindow(Adw.ApplicationWindow):
-    _processing_messages = [
-        "Agenting...",
-        "Analyzing...",
-        "Brewing...",
-        "Computing...",
-        "Conjuring...",
-        "Contemplating...",
-        "Pondering...",
-        "Reasoning...",
-        "Thinking...",
-        "Vibing...",
-    ]
-
     def __init__(
-        self, application: Adw.Application, orchestrator: OrchestratorService
+        self,
+        application: Adw.Application,
+        view_model: MainViewModel,
     ) -> None:
         super().__init__(application=application)
         self._logger = logging.getLogger(__name__)
         self.set_title(APPLICATION_NAME)
-        self.set_default_size(800, 600)
+        self.set_default_size(1024, 768)
         self._load_css()
 
-        self._orchestrator = orchestrator
-        self._orchestrator.connect(AGENT_MESSAGE_SIGNAL, self._on_agent_message)
-        self._orchestrator.connect(AGENT_READY_SIGNAL, self._on_agent_ready)
-        self._orchestrator.connect(AGENT_RUN_STARTED_SIGNAL, self._on_agent_run_started)
-        self._orchestrator.connect(
-            AGENT_RUN_COMPLETED_SIGNAL, self._on_agent_run_completed
+        self._view_model = view_model
+        self._view_model.connect(AGENT_UPDATE_AI_SIGNAL, self._on_agent_update_ai)
+        self._view_model.connect(AGENT_UPDATE_TOOL_SIGNAL, self._on_agent_update_tool)
+        self._view_model.view_state.connect(
+            "notify::status-text", self._on_status_text_changed
+        )
+        self._view_model.view_state.connect(
+            "notify::agent-state", self._on_agent_state_changed
+        )
+        self._view_model.view_state.connect(
+            "notify::input-enabled", self._on_input_enabled_changed
+        )
+        self._view_model.view_state.connect(
+            "notify::activity-mode", self._on_activity_mode_changed
         )
 
         toolbar_view = Adw.ToolbarView()
@@ -90,26 +85,42 @@ class MainWindow(Adw.ApplicationWindow):
     def _on_send_message(self, widget, text):
         message = GBaseMessage(data=HumanMessage(content=text))
         self._chat_widget.add_message(message)
-        self.status_widget.set_status("Starting agent...")
-        self._orchestrator.run_agent(text)
+        self._view_model.run_agent(text)
 
-    def _on_agent_message(self, orchestrator, message: GBaseMessage):
+    def _on_agent_update_ai(self, view_model, encoded_message: str):
+        ai_message = AIMessage.model_validate_json(encoded_message)
+        message = GBaseMessage(data=ai_message)
         self._chat_widget.add_message(message)
 
-    def _on_agent_ready(self, orchestrator):
-        self.status_widget.set_status(
-            "Ready. (Enter to submit, Shift+Enter for a new line.)"
-        )
-        self.status_widget.set_activity_mode(False)
-        self.input_widget.set_enabled(True)
+    def _on_agent_update_tool(self, view_model, encoded_message: str):
+        tool_message = ToolMessage.model_validate_json(encoded_message)
+        message = GBaseMessage(data=tool_message)
+        self._chat_widget.add_message(message)
 
-    def _on_agent_run_started(self, orchestrator):
-        message = random.choice(self._processing_messages)
-        self.status_widget.set_status(message)
-        self.status_widget.set_activity_mode(True)
-        self.input_widget.set_enabled(False)
+    def _on_status_text_changed(
+        self,
+        view_state: MainViewState,
+        param_spec: GObject.ParamSpec,
+    ):
+        self.status_widget.set_status(view_state.status_text)
 
-    def _on_agent_run_completed(self, orchestrator):
-        self.status_widget.set_status("Done.")
-        self.status_widget.set_activity_mode(False)
-        self.input_widget.set_enabled(True)
+    def _on_agent_state_changed(
+        self,
+        view_state: MainViewState,
+        param_spec: GObject.ParamSpec,
+    ):
+        self._logger.info(f"Agent state changed to: {view_state.agent_state}")
+
+    def _on_input_enabled_changed(
+        self,
+        view_state: MainViewState,
+        param_spec: GObject.ParamSpec,
+    ):
+        self.input_widget.set_enabled(view_state.input_enabled)
+
+    def _on_activity_mode_changed(
+        self,
+        view_state: MainViewState,
+        param_spec: GObject.ParamSpec,
+    ):
+        self.status_widget.set_activity_mode(view_state.activity_mode)

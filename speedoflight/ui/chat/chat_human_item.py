@@ -2,12 +2,13 @@ from gi.repository import Gtk, Pango  # type: ignore
 
 from speedoflight.constants import DEFAULT_MARGIN
 from speedoflight.models import GBaseMessage
-from speedoflight.ui.main.chat_item_mixin import ChatItemMixin
+from speedoflight.ui.chat.chat_item_mixin import ChatItemMixin
 
 
 class HumanMessageWidget(Gtk.Label, ChatItemMixin):
     def __init__(self, message: GBaseMessage) -> None:
-        super().__init__()
+        Gtk.Label.__init__(self)
+        ChatItemMixin.__init__(self)
 
         self.set_wrap(True)
         self.set_xalign(0.0)
