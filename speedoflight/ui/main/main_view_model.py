@@ -3,12 +3,12 @@ import random
 from gi.repository import GObject  # type: ignore
 
 from speedoflight.constants import (
-    AGENT_MESSAGE_SIGNAL,
     AGENT_READY_SIGNAL,
     AGENT_RUN_COMPLETED_SIGNAL,
     AGENT_RUN_STARTED_SIGNAL,
+    AGENT_UPDATE_AI_SIGNAL,
+    AGENT_UPDATE_TOOL_SIGNAL,
 )
-from speedoflight.models import GBaseMessage
 from speedoflight.services.orchestrator.orchestrator_service import OrchestratorService
 from speedoflight.ui.base_view_model import BaseViewModel
 from speedoflight.ui.main.agent_state import AgentState
@@ -17,7 +17,8 @@ from speedoflight.ui.main.main_view_state import MainViewState
 
 class MainViewModel(BaseViewModel):
     __gsignals__ = {
-        AGENT_MESSAGE_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, (object,))
+        AGENT_UPDATE_AI_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, (str,)),
+        AGENT_UPDATE_TOOL_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, (str,)),
     }
 
     AGENTIC_UPDATES = [
@@ -42,7 +43,8 @@ class MainViewModel(BaseViewModel):
         self._orchestrator.connect(
             AGENT_RUN_COMPLETED_SIGNAL, self._on_agent_run_completed
         )
-        self._orchestrator.connect(AGENT_MESSAGE_SIGNAL, self._on_agent_message)
+        self._orchestrator.connect(AGENT_UPDATE_AI_SIGNAL, self._on_agent_update_ai)
+        self._orchestrator.connect(AGENT_UPDATE_TOOL_SIGNAL, self._on_agent_update_tool)
 
     def _on_agent_ready(self, orchestrator: OrchestratorService, tool_count: int):
         self.view_state.status_text = f"Ready ({tool_count} tools)."
@@ -62,10 +64,15 @@ class MainViewModel(BaseViewModel):
         self.view_state.input_enabled = True
         self.view_state.activity_mode = False
 
-    def _on_agent_message(
-        self, orchestrator: OrchestratorService, message: GBaseMessage
+    def _on_agent_update_ai(
+        self, orchestrator: OrchestratorService, encoded_message: str
     ):
-        self.emit(AGENT_MESSAGE_SIGNAL, message)
+        self.emit(AGENT_UPDATE_AI_SIGNAL, encoded_message)
+
+    def _on_agent_update_tool(
+        self, orchestrator: OrchestratorService, encoded_message: str
+    ):
+        self.emit(AGENT_UPDATE_TOOL_SIGNAL, encoded_message)
 
     def run_agent(self, text: str):
         self.view_state.status_text = "Starting agent."

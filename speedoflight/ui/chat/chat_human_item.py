@@ -7,7 +7,8 @@ from speedoflight.ui.chat.chat_item_mixin import ChatItemMixin
 
 class HumanMessageWidget(Gtk.Label, ChatItemMixin):
     def __init__(self, message: GBaseMessage) -> None:
-        super().__init__()
+        Gtk.Label.__init__(self)
+        ChatItemMixin.__init__(self)
 
         self.set_wrap(True)
         self.set_xalign(0.0)

@@ -1,9 +1,13 @@
 import logging
 
 from gi.repository import Adw, Gdk, GObject, Gtk  # type: ignore
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
-from speedoflight.constants import AGENT_MESSAGE_SIGNAL, APPLICATION_NAME
+from speedoflight.constants import (
+    AGENT_UPDATE_AI_SIGNAL,
+    AGENT_UPDATE_TOOL_SIGNAL,
+    APPLICATION_NAME,
+)
 from speedoflight.models import GBaseMessage
 from speedoflight.ui.chat.chat_widget import ChatWidget
 from speedoflight.ui.input.input_widget import InputWidget
@@ -21,11 +25,12 @@ class MainWindow(Adw.ApplicationWindow):
         super().__init__(application=application)
         self._logger = logging.getLogger(__name__)
         self.set_title(APPLICATION_NAME)
-        self.set_default_size(800, 600)
+        self.set_default_size(1024, 768)
         self._load_css()
 
         self._view_model = view_model
-        self._view_model.connect(AGENT_MESSAGE_SIGNAL, self._on_agent_message)
+        self._view_model.connect(AGENT_UPDATE_AI_SIGNAL, self._on_agent_update_ai)
+        self._view_model.connect(AGENT_UPDATE_TOOL_SIGNAL, self._on_agent_update_tool)
         self._view_model.view_state.connect(
             "notify::status-text", self._on_status_text_changed
         )
@@ -82,7 +87,14 @@ class MainWindow(Adw.ApplicationWindow):
         self._chat_widget.add_message(message)
         self._view_model.run_agent(text)
 
-    def _on_agent_message(self, view_model, message: GBaseMessage):
+    def _on_agent_update_ai(self, view_model, encoded_message: str):
+        ai_message = AIMessage.model_validate_json(encoded_message)
+        message = GBaseMessage(data=ai_message)
+        self._chat_widget.add_message(message)
+
+    def _on_agent_update_tool(self, view_model, encoded_message: str):
+        tool_message = ToolMessage.model_validate_json(encoded_message)
+        message = GBaseMessage(data=tool_message)
         self._chat_widget.add_message(message)
 
     def _on_status_text_changed(

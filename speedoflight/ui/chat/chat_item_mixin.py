@@ -44,10 +44,10 @@ class ChatItemMixin:
 
         supported_artifacts = []
         for artifact in artifacts:
-            if hasattr(artifact, "type") and artifact.type == "image":
+            if artifact.get("type") == "image":
                 supported_artifacts.append(artifact)
             else:
-                artifact_type = getattr(artifact, "type", "unknown")
+                artifact_type = artifact.get("type", "unknown")
                 self._logger.warning(f"Artifact {artifact_type} not supported.")
 
         return supported_artifacts

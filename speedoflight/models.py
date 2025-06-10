@@ -1,7 +1,5 @@
-import base64
-import pickle
 from enum import Enum
-from typing import Any, Dict, List, TypeVar, Union
+from typing import Dict, List, Union
 
 from gi.repository import GObject  # type: ignore
 from langchain_core.messages import BaseMessage, HumanMessage
@@ -30,21 +28,3 @@ class GBaseMessage(GObject.Object):
 class AgentRequest(BaseModel):
     session_id: str
     message: HumanMessage
-
-
-T = TypeVar("T", bound="BaseAgentResponse")
-
-
-class BaseAgentResponse(BaseModel):
-    def encode(self) -> str:
-        data_bytes = pickle.dumps(self)
-        return base64.b64encode(data_bytes).decode("utf-8")
-
-    @classmethod
-    def decode(cls: type[T], encoded_str: str) -> T:
-        data_bytes = base64.b64decode(encoded_str.encode("utf-8"))
-        return pickle.loads(data_bytes)
-
-
-class AgentUpdateResponse(BaseAgentResponse):
-    data: Any  # Raw LangGraph event data

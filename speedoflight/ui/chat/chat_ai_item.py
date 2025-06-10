@@ -9,7 +9,8 @@ from speedoflight.ui.chat.chat_item_mixin import ChatItemMixin
 
 class AIMessageWidget(Gtk.Box, ChatItemMixin):
     def __init__(self, message: GBaseMessage) -> None:
-        super().__init__()
+        Gtk.Box.__init__(self)
+        ChatItemMixin.__init__(self)
 
         self.set_orientation(Gtk.Orientation.VERTICAL)
         self.set_spacing(0)

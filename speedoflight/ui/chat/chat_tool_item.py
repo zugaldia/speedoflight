@@ -8,7 +8,8 @@ from speedoflight.utils import base64_to_pixbuf
 
 class ToolMessageWidget(Adw.ExpanderRow, ChatItemMixin):
     def __init__(self, message: GBaseMessage) -> None:
-        super().__init__()
+        Adw.ExpanderRow.__init__(self)
+        ChatItemMixin.__init__(self)
 
         self.set_margin_top(DEFAULT_MARGIN)
         self.set_margin_bottom(DEFAULT_MARGIN)
@@ -50,8 +51,10 @@ class ToolMessageWidget(Adw.ExpanderRow, ChatItemMixin):
         artifacts = self.extract_artifacts(message.data)
         has_images = False
         for artifact in artifacts:
-            if hasattr(artifact, "data") and hasattr(artifact, "mimeType"):
-                pixbuf = base64_to_pixbuf(artifact.data, artifact.mimeType)
+            data = artifact.get("data")
+            mime_type = artifact.get("mimeType")
+            if data and mime_type:
+                pixbuf = base64_to_pixbuf(data, mime_type)
                 if pixbuf:
                     picture = Gtk.Picture()
                     picture.set_pixbuf(pixbuf)
