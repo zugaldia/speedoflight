@@ -52,7 +52,7 @@ class AgentService(BaseService):
             model,
             tools=self._mcp_tools,
             checkpointer=checkpointer,
-            debug=False,
+            debug=self._app_config.agent_debug,
         )
         self._logger.info("Agent is ready.")
         self.safe_emit(AGENT_READY_SIGNAL, len(self._mcp_tools))
@@ -67,11 +67,17 @@ class AgentService(BaseService):
         self.safe_emit(AGENT_RUN_STARTED_SIGNAL)
 
         config = {"configurable": {"thread_id": request.session_id}}
+
+        # "values", "updates", "debug", "messages", "custom"
+        stream_mode = ["updates"]
+        if self._app_config.agent_debug:
+            stream_mode.append("debug")
+
         events: AsyncIterator[dict[str, Any] | Any] = self._agent.astream(
             input={"messages": [request.message]},
             config=config,
-            stream_mode=["updates"],
-            debug=False,
+            stream_mode=stream_mode,
+            debug=self._app_config.agent_debug,
         )
 
         async for event_type, event in events:
@@ -80,6 +86,8 @@ class AgentService(BaseService):
                 update = AgentUpdateResponse(data=event)
                 encoded = update.encode()
                 self.safe_emit(AGENT_UPDATE_SIGNAL, encoded)
+            elif event_type == "debug":
+                self._logger.info(f"Debug event: {event}")
             else:
                 self._logger.warning(f"Unknown event type: {event_type}")
 

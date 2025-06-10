@@ -36,7 +36,8 @@ The configuration file has the following structure:
 ```json
 {
   "model": "ollama:llama3.2",
-  "mcp_servers": {}
+  "mcp_servers": {},
+  "agent_debug": false
 }
 ```
 
@@ -47,6 +48,8 @@ The configuration file has the following structure:
   - `anthropic:claude-opus-4-20250514` (requires `ANTHROPIC_API_KEY` environment variable)
   - `google_genai:gemini-2.5-pro-preview-06-05` (requires `GOOGLE_API_KEY` environment variable)
   - `openai:gpt-4.1` (requires `OPENAI_API_KEY` environment variable)
+
+- **`agent_debug`**: Enables debug mode in the agent (default: `false`). When enabled, more detailed information will be logged to the terminal, which is useful for troubleshooting.
 
 - **`mcp_servers`**: Configuration for MCP servers. This allows extending the agent with additional tools. For example, to add the Firecrawl MCP so that SOL can download websites and search the web, you would add the following:
 
