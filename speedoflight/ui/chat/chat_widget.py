@@ -5,9 +5,9 @@ from gi.repository import Gio, GLib, Gtk  # type: ignore
 
 from speedoflight.constants import DEFAULT_MARGIN
 from speedoflight.models import GBaseMessage, MessageRole
-from speedoflight.ui.chat.chat_ai_item import AIMessageWidget
-from speedoflight.ui.chat.chat_human_item import HumanMessageWidget
-from speedoflight.ui.chat.chat_tool_item import ToolMessageWidget
+from speedoflight.ui.chat.chat_ai_widget import ChatAiWidget
+from speedoflight.ui.chat.chat_human_widget import ChatHumanWidget
+from speedoflight.ui.chat.chat_tool_widget import ChatToolWidget
 
 
 class ChatWidget(Gtk.ListView):
@@ -47,13 +47,13 @@ class ChatWidget(Gtk.ListView):
 
     def _on_factory_bind(self, factory, list_item) -> None:
         message: GBaseMessage = list_item.get_item()
-        widget: Union[HumanMessageWidget, AIMessageWidget, ToolMessageWidget, Gtk.Label]
+        widget: Union[ChatHumanWidget, ChatAiWidget, ChatToolWidget, Gtk.Label]
         if message.data.type == MessageRole.HUMAN.value:
-            widget = HumanMessageWidget(message)
+            widget = ChatHumanWidget(message)
         elif message.data.type == MessageRole.AI.value:
-            widget = AIMessageWidget(message)
+            widget = ChatAiWidget(message)
         elif message.data.type == MessageRole.TOOL.value:
-            widget = ToolMessageWidget(message)
+            widget = ChatToolWidget(message)
         else:
             widget = Gtk.Label(label=f"Unable to render message({message.data.type}).")
         list_item.set_child(widget)

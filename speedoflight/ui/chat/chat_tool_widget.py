@@ -6,7 +6,7 @@ from speedoflight.ui.chat.chat_item_mixin import ChatItemMixin
 from speedoflight.utils import base64_to_pixbuf
 
 
-class ToolMessageWidget(Adw.ExpanderRow, ChatItemMixin):
+class ChatToolWidget(Adw.ExpanderRow, ChatItemMixin):
     def __init__(self, message: GBaseMessage) -> None:
         Adw.ExpanderRow.__init__(self)
         ChatItemMixin.__init__(self)

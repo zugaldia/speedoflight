@@ -1,5 +1,0 @@
-{
-  "model": "ollama:llama3.2",
-  "agent_debug": false,
-  "mcp_servers": {}
-}

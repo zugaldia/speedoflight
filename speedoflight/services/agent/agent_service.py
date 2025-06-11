@@ -50,14 +50,18 @@ class AgentService(BaseService):
         self._logger.info("Setting up agent.")
         model = init_chat_model(self._app_config.model, temperature=0)
         checkpointer = InMemorySaver()
+
+        cloud_tools = self._app_config.cloud_tools.get(self._app_config.model, [])
+        all_tools = self._mcp_tools + cloud_tools
+
         self._agent = create_react_agent(
             model,
-            tools=self._mcp_tools,
+            tools=all_tools,
             checkpointer=checkpointer,
             debug=self._app_config.agent_debug,
         )
         self._logger.info("Agent is ready.")
-        self.safe_emit(AGENT_READY_SIGNAL, len(self._mcp_tools))
+        self.safe_emit(AGENT_READY_SIGNAL, len(all_tools))
 
     async def stream_async(self, request: AgentRequest):
         if self._agent is None:
@@ -83,6 +87,7 @@ class AgentService(BaseService):
 
         async for event_type, event in events:
             if event_type == "updates":
+                # self._logger.info(f"-> Received update event: {event}")
                 self._process_update(event)
             elif event_type == "debug":
                 self._logger.info(f"Debug event: {event}")
