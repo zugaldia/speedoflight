@@ -1,4 +1,5 @@
-from gi.repository import GObject
+from gi.repository import GObject  # type: ignore
+
 from speedoflight.ui.base_view_state import BaseViewState
 from speedoflight.ui.main.agent_state import AgentState
 
