@@ -3,5 +3,6 @@ __pycache__/
 config.json
 profiles/
 scripts/
+speedoflight.log
 TODO.md
 venv/
