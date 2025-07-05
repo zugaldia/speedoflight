@@ -23,8 +23,10 @@ class MainViewModel(BaseViewModel):
 
     AGENTIC_UPDATES = [
         "Agenting...",
+        "Assembling...",
         "Analyzing...",
         "Brewing...",
+        "Compiling...",
         "Computing...",
         "Conjuring...",
         "Looping...",
