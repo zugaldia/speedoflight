@@ -56,9 +56,13 @@ class AgentService(BaseService):
 
     def _setup_agent(self):
         self._logger.info("Setting up agent.")
-        model = init_chat_model(self._app_config.model, temperature=0)
-        checkpointer = InMemorySaver()
 
+        # For Ollama models that don't support tools, the agent fails with
+        # obscure 400 errors. We need to improve this logic by checking tool
+        # support first or at least capturing a more user friendly error.
+        model = init_chat_model(self._app_config.model, temperature=0)
+
+        checkpointer = InMemorySaver()
         cloud_tools = self._app_config.cloud_tools.get(self._app_config.model, [])
         all_tools = self._mcp_tools + cloud_tools
 
