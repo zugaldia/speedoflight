@@ -1,6 +1,8 @@
 APPLICATION_ID = "io.speedoflight.App"
 APPLICATION_NAME = "Speed of Light"
 
+LOG_FILE = "speedoflight.log"
+
 DEFAULT_PADDING = 10
 DEFAULT_SPACING = 10
 DEFAULT_MARGIN = 10

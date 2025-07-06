@@ -39,6 +39,21 @@ All services inherit from `BaseService` (base_service.py) which provides:
 - Custom styling via `speedoflight/data/style.css`
 - Main window components in `speedoflight/ui/main/`
 
+### MVVM Pattern Implementation
+- **ViewModels**: Inherit from `BaseViewModel` (base_view_model.py) with GObject support and logging
+- **ViewStates**: Inherit from `BaseViewState` (base_view_state.py) for data binding
+- All UI components follow GObject signal-based communication
+
+### Key Dependencies
+- **LangChain/LangGraph**: AI agent execution framework
+- **PyGObject**: GTK4 Python bindings
+- Multiple LLM providers: Anthropic, OpenAI, Google, Ollama
+
+### Threading & Signals
+- Services run in Python threads to avoid blocking UI
+- Use `BaseService.safe_emit()` to emit signals from threads (wraps with GLib.idle_add)
+- All signal emissions must be thread-safe for main GTK loop
+
 ### Agent Architecture
 - Uses LangGraph ReAct agent with in-memory checkpointing
 - Supports multiple LLM providers via LangChain's `init_chat_model`

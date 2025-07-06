@@ -1,8 +1,7 @@
-from gi.repository import GObject
+from gi.repository import GObject  # type: ignore
 
 
 class AgentState(GObject.GEnum):
-    __gtype_name__ = "AgentState"
     INITIALIZING = 1
     READY = 2
     RUNNING = 3

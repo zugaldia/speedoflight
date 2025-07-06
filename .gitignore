@@ -2,5 +2,7 @@ __pycache__/
 .vscode/
 config.json
 profiles/
+scripts/
+speedoflight.log
 TODO.md
 venv/

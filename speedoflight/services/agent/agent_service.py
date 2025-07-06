@@ -3,7 +3,6 @@ from typing import Any, AsyncIterator, List, Optional
 from gi.repository import GObject  # type: ignore
 from langchain.chat_models import init_chat_model
 from langchain_core.tools import BaseTool
-from langchain_mcp_adapters.client import MultiServerMCPClient
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph.graph import CompiledGraph
 from langgraph.prebuilt import create_react_agent
@@ -20,6 +19,7 @@ from speedoflight.services.base_service import BaseService
 from speedoflight.services.configuration.configuration_service import (
     ConfigurationService,
 )
+from speedoflight.services.mcp.mcp_service import McpService
 
 
 class AgentService(BaseService):
@@ -31,33 +31,49 @@ class AgentService(BaseService):
         AGENT_RUN_COMPLETED_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, ()),
     }
 
-    def __init__(self, configuration: ConfigurationService):
+    def __init__(self, configuration: ConfigurationService, mcp: McpService):
         super().__init__(service_name="agent")
+        self._mcp = mcp
         self._app_config = configuration.get_config()
         self._agent: Optional[CompiledGraph] = None
         self._mcp_tools: List[BaseTool] = []
         self._logger.info("Initialized.")
 
     async def load_tools_async(self):
-        self._logger.info("Loading MCP tools.")
-        client = MultiServerMCPClient(self._app_config.mcp_servers)
-        self._mcp_tools = await client.get_tools()
-        tool_names = [tool.name for tool in self._mcp_tools]
-        self._logger.info(f"Loaded {len(self._mcp_tools)} tools: {tool_names}")
-        self._setup_agent()
+        try:
+            # Prints server metadata
+            if self._app_config.agent_debug:
+                for server_name in self._app_config.mcp_servers.keys():
+                    self._logger.debug(f"Getting info for {server_name}")
+                    await self._mcp.send_ping(server_name)
+            self._logger.info("Loading MCP tools.")
+            self._mcp_tools = await self._mcp.get_tools()
+            tool_names = [tool.name for tool in self._mcp_tools]
+            self._logger.info(f"Loaded {len(self._mcp_tools)} tools: {tool_names}")
+            self._setup_agent()
+        except Exception:
+            self._logger.error("Failed to load MCP tools.", exc_info=True)
 
     def _setup_agent(self):
         self._logger.info("Setting up agent.")
+
+        # For Ollama models that don't support tools, the agent fails with
+        # obscure 400 errors. We need to improve this logic by checking tool
+        # support first or at least capturing a more user friendly error.
         model = init_chat_model(self._app_config.model, temperature=0)
+
         checkpointer = InMemorySaver()
+        cloud_tools = self._app_config.cloud_tools.get(self._app_config.model, [])
+        all_tools = self._mcp_tools + cloud_tools
+
         self._agent = create_react_agent(
             model,
-            tools=self._mcp_tools,
+            tools=all_tools,
             checkpointer=checkpointer,
             debug=self._app_config.agent_debug,
         )
         self._logger.info("Agent is ready.")
-        self.safe_emit(AGENT_READY_SIGNAL, len(self._mcp_tools))
+        self.safe_emit(AGENT_READY_SIGNAL, len(all_tools))
 
     async def stream_async(self, request: AgentRequest):
         if self._agent is None:
@@ -83,6 +99,7 @@ class AgentService(BaseService):
 
         async for event_type, event in events:
             if event_type == "updates":
+                self._logger.info(f"-> Received update event: {event}")
                 self._process_update(event)
             elif event_type == "debug":
                 self._logger.info(f"Debug event: {event}")

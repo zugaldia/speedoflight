@@ -5,7 +5,7 @@ from speedoflight.models import GBaseMessage
 from speedoflight.ui.chat.chat_item_mixin import ChatItemMixin
 
 
-class HumanMessageWidget(Gtk.Label, ChatItemMixin):
+class ChatHumanWidget(Gtk.Label, ChatItemMixin):
     def __init__(self, message: GBaseMessage) -> None:
         Gtk.Label.__init__(self)
         ChatItemMixin.__init__(self)
