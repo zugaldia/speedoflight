@@ -55,7 +55,7 @@ The configuration file has the following structure:
 
 - **`agent_debug`**: Enables debug mode in the agent (default: `false`). When enabled, more detailed information will be logged to the terminal, which is useful for troubleshooting.
 
-- **`mcp_servers`**: Configuration for MCP servers. This allows extending the agent with additional tools. For example, to add the [Mapbox MCP](https://github.com/mapbox/mcp-server) so that SOL can search for places and create maps, you would add the following:
+- **`mcp_servers`**: Configuration for MCP servers. This allows extending the agent with additional tools. For example, to add the [Mapbox MCP](https://github.com/mapbox/mcp-server) pictured above, you would add the following:
 
 ```json
 {
@@ -70,7 +70,21 @@ The configuration file has the following structure:
 }
 ```
 
-Note that MCP servers are optional. SOL works with no servers configured (`"mcp_servers": {}`), in which case you would be talking to the LLM directly without any additional tools.
+Or to add the [GNOME MCP Server](https://github.com/bilelmoussaoui/gnome-mcp-server):
+
+```json
+{
+  "mcp_servers": {
+    "gnome": {
+      "transport": "stdio",
+      "command": "/path/to/gnome-mcp-server/target/debug/gnome-mcp-server",
+      "args": [],
+    }
+  }
+}
+```
+
+Note that MCP servers are optional. SOL can work with no servers configured (`"mcp_servers": {}`), in which case you would be talking to the LLM directly without any additional tools.
 
 - **`cloud_tools`**: Configuration for cloud-based tools that are executed by the LLM provider. These are pre-built tools that don't require local implementation. The configuration varies slightly between providers:
 
