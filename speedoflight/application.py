@@ -8,14 +8,11 @@ gi.require_version("Adw", "1")
 from gi.repository import Adw, Gio  # type: ignore  # noqa: E402
 
 from speedoflight.constants import APPLICATION_ID, LOG_FILE  # noqa: E402
-from speedoflight.services.agent.agent_service import AgentService  # noqa: E402
-from speedoflight.services.configuration.configuration_service import (  # noqa: E402
-    ConfigurationService,
-)
-from speedoflight.services.mcp.mcp_service import McpService  # noqa: E402
-from speedoflight.services.orchestrator.orchestrator_service import (  # noqa: E402
-    OrchestratorService,
-)
+from speedoflight.services.agent import AgentService  # noqa: E402
+from speedoflight.services.configuration import ConfigurationService  # noqa: E402
+from speedoflight.services.markdown import MarkdownService  # noqa: E402
+from speedoflight.services.mcp import McpService  # noqa: E402
+from speedoflight.services.orchestrator import OrchestratorService  # noqa: E402
 from speedoflight.ui.main.main_view_model import MainViewModel  # noqa: E402
 from speedoflight.ui.main.main_window import MainWindow  # noqa: E402
 
@@ -71,13 +68,12 @@ class SolApplication(Adw.Application):
 
         # Poor man DI
         self._configuration = ConfigurationService()
-        self._mcp_service = McpService(configuration=self._configuration)
-        self._agent = AgentService(
-            configuration=self._configuration,
-            mcp=self._mcp_service,
-        )
+        self._markdown = MarkdownService()
+        self._mcp = McpService(configuration=self._configuration)
+        self._agent = AgentService(configuration=self._configuration, mcp=self._mcp)
         self._orchestrator = OrchestratorService(
             configuration=self._configuration,
+            markdown=self._markdown,
             agent=self._agent,
         )
 
@@ -99,7 +95,8 @@ class SolApplication(Adw.Application):
         self._main_view_model.shutdown()
         self._orchestrator.shutdown()
         self._agent.shutdown()
-        self._mcp_service.shutdown()
+        self._mcp.shutdown()
+        self._markdown.shutdown()
         self._configuration.shutdown()
         Adw.Application.do_shutdown(self)
 
