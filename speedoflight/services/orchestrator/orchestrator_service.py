@@ -2,7 +2,7 @@ import asyncio
 import threading
 
 from gi.repository import GObject  # type: ignore
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage
 
 from speedoflight.constants import (
     AGENT_READY_SIGNAL,
@@ -17,6 +17,7 @@ from speedoflight.services.base_service import BaseService
 from speedoflight.services.configuration.configuration_service import (
     ConfigurationService,
 )
+from speedoflight.services.markdown.markdown_service import MarkdownService
 from speedoflight.utils import generate_uuid
 
 
@@ -29,7 +30,12 @@ class OrchestratorService(BaseService):
         AGENT_RUN_COMPLETED_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, ()),
     }
 
-    def __init__(self, configuration: ConfigurationService, agent: AgentService):
+    def __init__(
+        self,
+        configuration: ConfigurationService,
+        markdown: MarkdownService,
+        agent: AgentService,
+    ):
         super().__init__(service_name="orchestrator")
 
         # TODO: Eventually integrate with Asyncio support for PyGObject (experimental)
@@ -41,6 +47,7 @@ class OrchestratorService(BaseService):
         self._session_id = generate_uuid()
 
         self._agent = agent
+        self._markdown = markdown
         self._agent.connect(AGENT_UPDATE_AI_SIGNAL, self._on_agent_update_ai)
         self._agent.connect(AGENT_UPDATE_TOOL_SIGNAL, self._on_agent_update_tool)
         self._agent.connect(AGENT_READY_SIGNAL, self._on_agent_ready)
@@ -70,6 +77,16 @@ class OrchestratorService(BaseService):
 
     def _on_agent_update_ai(self, agent_service, encoded_message: str):
         self._logger.info("Emitting AI message.")
+
+        try:
+            # TODO: Integrate once we have our own models
+            ai_message = AIMessage.model_validate_json(encoded_message)
+            self._logger.info(f"Before markdown conversion: {ai_message.content}")
+            converted_content = self._markdown.markdown_to_pango(ai_message.content)
+            self._logger.info(f"After markdown conversion: {converted_content}")
+        except Exception as e:
+            self._logger.error(f"Error processing AI message: {e}")
+
         self.safe_emit(AGENT_UPDATE_AI_SIGNAL, encoded_message)
 
     def _on_agent_update_tool(self, agent_service, encoded_message: str):
