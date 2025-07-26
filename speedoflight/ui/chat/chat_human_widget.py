@@ -1,27 +1,24 @@
-from gi.repository import Gtk, Pango  # type: ignore
+from speedoflight.models import (
+    GBaseMessage,
+    MessageRole,
+    RequestMessage,
+    TextBlockRequest,
+)
+from speedoflight.ui.chat.chat_base_widget import ChatBaseWidget
 
-from speedoflight.constants import DEFAULT_MARGIN
-from speedoflight.models import GBaseMessage
-from speedoflight.ui.chat.chat_item_mixin import ChatItemMixin
 
-
-class ChatHumanWidget(Gtk.Label, ChatItemMixin):
+class ChatHumanWidget(ChatBaseWidget):
     def __init__(self, message: GBaseMessage) -> None:
-        Gtk.Label.__init__(self)
-        ChatItemMixin.__init__(self)
+        super().__init__()
+        content = (
+            message.data.content
+            if isinstance(message.data, RequestMessage)
+            and message.data.role == MessageRole.HUMAN
+            else []
+        )
 
-        self.set_wrap(True)
-        self.set_xalign(0.0)
-        self.set_selectable(True)
-        self.set_margin_top(DEFAULT_MARGIN)
-        self.set_margin_bottom(DEFAULT_MARGIN)
-        self.set_margin_start(DEFAULT_MARGIN)
-        self.set_margin_end(DEFAULT_MARGIN)
-
-        # Add CSS class for styling
-        self.get_style_context().add_class("human-message")
-
-        lines = self.extract_text(message.data)
-        text = "\n".join(lines)
-        self.set_text(text)
-        self.set_wrap_mode(Pango.WrapMode.WORD_CHAR)
+        for block in content:
+            if isinstance(block, TextBlockRequest):
+                self._add_plain_text(block.text, "human-message")
+            else:
+                self._logger.warning(f"Unsupported human block type: {type(block)}")
