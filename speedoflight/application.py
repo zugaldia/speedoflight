@@ -4,13 +4,14 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
+gi.require_version("GtkSource", "5")
 
 from gi.repository import Adw, Gio  # type: ignore  # noqa: E402
 
 from speedoflight.constants import APPLICATION_ID, LOG_FILE  # noqa: E402
 from speedoflight.services.agent import AgentService  # noqa: E402
 from speedoflight.services.configuration import ConfigurationService  # noqa: E402
-from speedoflight.services.markdown import MarkdownService  # noqa: E402
+from speedoflight.services.llm.llm_service import LlmService  # noqa: E402
 from speedoflight.services.mcp import McpService  # noqa: E402
 from speedoflight.services.orchestrator import OrchestratorService  # noqa: E402
 from speedoflight.ui.main.main_view_model import MainViewModel  # noqa: E402
@@ -68,12 +69,14 @@ class SolApplication(Adw.Application):
 
         # Poor man DI
         self._configuration = ConfigurationService()
-        self._markdown = MarkdownService()
+        self._llm = LlmService(configuration=self._configuration)
         self._mcp = McpService(configuration=self._configuration)
-        self._agent = AgentService(configuration=self._configuration, mcp=self._mcp)
+        self._agent = AgentService(
+            configuration=self._configuration, llm=self._llm, mcp=self._mcp
+        )
+
         self._orchestrator = OrchestratorService(
             configuration=self._configuration,
-            markdown=self._markdown,
             agent=self._agent,
         )
 
@@ -96,7 +99,6 @@ class SolApplication(Adw.Application):
         self._orchestrator.shutdown()
         self._agent.shutdown()
         self._mcp.shutdown()
-        self._markdown.shutdown()
         self._configuration.shutdown()
         Adw.Application.do_shutdown(self)
 

@@ -1,14 +1,19 @@
 import logging
 
 from gi.repository import Adw, Gdk, GObject, Gtk  # type: ignore
-from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
 from speedoflight.constants import (
     AGENT_UPDATE_AI_SIGNAL,
     AGENT_UPDATE_TOOL_SIGNAL,
     APPLICATION_NAME,
 )
-from speedoflight.models import GBaseMessage
+from speedoflight.models import (
+    GBaseMessage,
+    MessageRole,
+    RequestMessage,
+    ResponseMessage,
+    TextBlockRequest,
+)
 from speedoflight.ui.chat.chat_widget import ChatWidget
 from speedoflight.ui.input.input_widget import InputWidget
 from speedoflight.ui.main.main_view_model import MainViewModel
@@ -83,17 +88,21 @@ class MainWindow(Adw.ApplicationWindow):
             )
 
     def _on_send_message(self, widget, text):
-        message = GBaseMessage(data=HumanMessage(content=text))
+        human_message = RequestMessage(
+            role=MessageRole.HUMAN,
+            content=[TextBlockRequest(text=text)],
+        )
+        message = GBaseMessage(data=human_message)
         self._chat_widget.add_message(message)
         self._view_model.run_agent(text)
 
     def _on_agent_update_ai(self, view_model, encoded_message: str):
-        ai_message = AIMessage.model_validate_json(encoded_message)
+        ai_message = ResponseMessage.model_validate_json(encoded_message)
         message = GBaseMessage(data=ai_message)
         self._chat_widget.add_message(message)
 
     def _on_agent_update_tool(self, view_model, encoded_message: str):
-        tool_message = ToolMessage.model_validate_json(encoded_message)
+        tool_message = RequestMessage.model_validate_json(encoded_message)
         message = GBaseMessage(data=tool_message)
         self._chat_widget.add_message(message)
 
