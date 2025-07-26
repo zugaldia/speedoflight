@@ -1,11 +1,4 @@
-from typing import Any, AsyncIterator, List, Optional
-
 from gi.repository import GObject  # type: ignore
-from langchain.chat_models import init_chat_model
-from langchain_core.tools import BaseTool
-from langgraph.checkpoint.memory import InMemorySaver
-from langgraph.graph.graph import CompiledGraph
-from langgraph.prebuilt import create_react_agent
 
 from speedoflight.constants import (
     AGENT_READY_SIGNAL,
@@ -14,147 +7,168 @@ from speedoflight.constants import (
     AGENT_UPDATE_AI_SIGNAL,
     AGENT_UPDATE_TOOL_SIGNAL,
 )
-from speedoflight.models import AgentRequest
-from speedoflight.services.base_service import BaseService
-from speedoflight.services.configuration.configuration_service import (
-    ConfigurationService,
+from speedoflight.models import (
+    AgentRequest,
+    BaseMessage,
+    ImageMimeType,
+    MessageRole,
+    RequestMessage,
+    ResponseMessage,
+    StopReason,
+    ToolImageOutputRequest,
+    ToolTextOutputRequest,
 )
+from speedoflight.services.base_service import BaseService
+from speedoflight.services.configuration import ConfigurationService
+from speedoflight.services.llm.llm_service import LlmService
 from speedoflight.services.mcp.mcp_service import McpService
 
 
 class AgentService(BaseService):
     __gsignals__ = {
-        AGENT_UPDATE_AI_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, (str,)),
-        AGENT_UPDATE_TOOL_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, (str,)),
         AGENT_READY_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, (int,)),
         AGENT_RUN_STARTED_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, ()),
         AGENT_RUN_COMPLETED_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, ()),
+        AGENT_UPDATE_AI_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, (str,)),
+        AGENT_UPDATE_TOOL_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, (str,)),
     }
 
-    def __init__(self, configuration: ConfigurationService, mcp: McpService):
+    def __init__(
+        self,
+        configuration: ConfigurationService,
+        llm: LlmService,
+        mcp: McpService,
+    ):
         super().__init__(service_name="agent")
+        self._configuration = configuration
+        self._llm = llm
         self._mcp = mcp
-        self._app_config = configuration.get_config()
-        self._agent: Optional[CompiledGraph] = None
-        self._mcp_tools: List[BaseTool] = []
+
+        # TODO: This is a naive implementation. We should probably create a
+        # memory service where we track tokens limits and summarize old
+        # history as needed.
+        self._messages: list[BaseMessage] = []
+
+        self._setup()
         self._logger.info("Initialized.")
 
-    async def load_tools_async(self):
-        try:
-            # Prints server metadata
-            if self._app_config.agent_debug:
-                for server_name in self._app_config.mcp_servers.keys():
-                    self._logger.debug(f"Getting info for {server_name}")
-                    await self._mcp.send_ping(server_name)
-            self._logger.info("Loading MCP tools.")
-            self._mcp_tools = await self._mcp.get_tools()
-            tool_names = [tool.name for tool in self._mcp_tools]
-            self._logger.info(f"Loaded {len(self._mcp_tools)} tools: {tool_names}")
-            self._setup_agent()
-        except Exception:
-            self._logger.error("Failed to load MCP tools.", exc_info=True)
+    def shutdown(self):
+        pass
 
-    def _setup_agent(self):
+    def _add_message(self, message: BaseMessage):
+        """Add a message to the conversation history and notify the UI."""
+        if message.role == MessageRole.AI:
+            self.safe_emit(AGENT_UPDATE_AI_SIGNAL, message.model_dump_json())
+        elif message.role == MessageRole.TOOL:
+            self.safe_emit(AGENT_UPDATE_TOOL_SIGNAL, message.model_dump_json())
+
+        self._messages.append(message)
+        total_messages = len(self._messages)
+        self._logger.info(f"Added message (total: {total_messages}): {message}")
+
+    def _setup(self):
         self._logger.info("Setting up agent.")
 
-        # For Ollama models that don't support tools, the agent fails with
-        # obscure 400 errors. We need to improve this logic by checking tool
-        # support first or at least capturing a more user friendly error.
-        model = init_chat_model(self._app_config.model, temperature=0)
+        # FIXME: Update the UI as new tools are encountered.
+        self.safe_emit(AGENT_READY_SIGNAL, 0)
 
-        checkpointer = InMemorySaver()
-        cloud_tools = self._app_config.cloud_tools.get(self._app_config.model, [])
-        all_tools = self._mcp_tools + cloud_tools
-
-        self._agent = create_react_agent(
-            model,
-            tools=all_tools,
-            checkpointer=checkpointer,
-            debug=self._app_config.agent_debug,
-        )
-        self._logger.info("Agent is ready.")
-        self.safe_emit(AGENT_READY_SIGNAL, len(all_tools))
-
-    async def stream_async(self, request: AgentRequest):
-        if self._agent is None:
-            self._logger.error("Agent not initialized.")
-            return
-
-        self._logger.info("Agent run started.")
+    async def run(self, request: AgentRequest):
+        self._logger.info(f"Running agent with request: {request}")
         self.safe_emit(AGENT_RUN_STARTED_SIGNAL)
+        self._add_message(request.message)
+        await self._run_llm()
 
-        config = {"configurable": {"thread_id": request.session_id}}
-
-        # Can be: "values", "updates", "debug", "messages", "custom"
-        stream_mode = ["updates"]
-        if self._app_config.agent_debug:
-            stream_mode.append("debug")
-
-        events: AsyncIterator[dict[str, Any] | Any] = self._agent.astream(
-            input={"messages": [request.message]},
-            config=config,
-            stream_mode=stream_mode,
-            debug=self._app_config.agent_debug,
+    async def _run_llm(self):
+        total_messages = len(self._messages)
+        total_tools = len(self._mcp.tools)
+        self._logger.info(
+            f"Running agent with {total_messages} messages and {total_tools} tools."
         )
 
-        async for event_type, event in events:
-            if event_type == "updates":
-                self._logger.info(f"-> Received update event: {event}")
-                self._process_update(event)
-            elif event_type == "debug":
-                self._logger.info(f"Debug event: {event}")
-            else:
-                self._logger.warning(f"Unhandled event type: {event_type}: {event}")
+        try:
+            message = await self._llm.generate_message(self._messages, self._mcp.tools)
+            self._add_message(message)
+            await self._handle_response(message)
+        except Exception as e:
+            self._logger.error(f"Error during LLM generation: {e}")
 
-        self._logger.info("Agent run completed.")
-        self.safe_emit(AGENT_RUN_COMPLETED_SIGNAL)
+    async def _handle_response(self, message: ResponseMessage):
+        if message.stop_reason == StopReason.END_TURN:
+            self._logger.info("End of turn detected.")
+            self.safe_emit(AGENT_RUN_COMPLETED_SIGNAL)
+        elif message.stop_reason == StopReason.TOOL_USE:
+            self._logger.info("Tool call detected, processing tool.")
+            await self._handle_tool_use(message)
+        else:
+            self._logger.warning(f"Unhandled stop reason: {message.stop_reason}")
 
-    def _process_update(self, event):
-        if not isinstance(event, dict):
-            self._logger.warning(f"Expected dictionary, got {type(event)}")
+    async def _handle_tool_use(self, message: ResponseMessage):
+        tool_result = await self._mcp.call_tool(message)
+        if tool_result is None:
+            # TODO: End turn?
+            self._logger.warning("Tool call returned no result.")
             return
 
-        for key in event.keys():
-            if key == "agent":
-                agent_data = event[key]
-                if isinstance(agent_data, dict):
-                    self._process_agent_update(agent_data)
-                else:
-                    self._logger.warning(f"Expected dictionary, got {type(agent_data)}")
-            elif key == "tools":
-                tools_data = event[key]
-                if isinstance(tools_data, dict):
-                    self._process_tools_update(tools_data)
-                else:
-                    self._logger.warning(f"Expected dictionary, got {type(tools_data)}")
+        # Anthropic requires each `tool_use` must have a single `tool_result`
+        # for a given `call_id`. We use this loop to consolidate potentially
+        # multiple responses of the same type into one message. ElevenLabs
+        # does this, for example, when you ask for voices available in your
+        # account, it returns 10 individual voice results (for the same call)
+        text = []
+        images = []
+        for block in tool_result.result.content:
+            if block.type == "text":
+                text.append(block.text)
+            elif block.type == "image":
+                images.append((block.data, block.mimeType))
             else:
-                self._logger.warning(f"Unknown update key: {key}")
+                self._logger.warning(
+                    f"Unsupported tool result block type: {block.type}"
+                )
 
-    def _process_agent_update(self, agent_data: dict):
-        for agent_key in agent_data.keys():
-            if agent_key == "messages":
-                messages = agent_data[agent_key]
-                if isinstance(messages, list):
-                    for message in messages:
-                        encoded = message.model_dump_json()
-                        self.safe_emit(AGENT_UPDATE_AI_SIGNAL, encoded)
-                else:
-                    self._logger.warning(f"Expected a list, got {type(messages)}")
-            else:
-                self._logger.warning(f"Unknown agent update key: {agent_key}")
+        if text and images:
+            self._logger.warning(
+                "Tool result contains both text and images, which is not supported, only text will be sent."
+            )
+        if len(text) > 1:
+            self._logger.warning(
+                "Tool result contains multiple text blocks, they will be concatenated."
+            )
+        if len(images) > 1:
+            self._logger.warning(
+                "Tool result contains multiple images, only the first one will be sent."
+            )
 
-    def _process_tools_update(self, tools_data: dict):
-        for tools_key in tools_data.keys():
-            if tools_key == "messages":
-                messages = tools_data[tools_key]
-                if isinstance(messages, list):
-                    for message in messages:
-                        encoded = message.model_dump_json()
-                        self.safe_emit(AGENT_UPDATE_TOOL_SIGNAL, encoded)
-                else:
-                    self._logger.warning(f"Expected a list, got {type(messages)}")
-            else:
-                self._logger.warning(f"Unknown tools update key: {tools_key}")
+        if text:
+            tool_text = text[0] if len(text) == 1 else "\n".join(text)
+            self._add_message(
+                RequestMessage(
+                    role=MessageRole.TOOL,
+                    content=[
+                        ToolTextOutputRequest(
+                            call_id=tool_result.call_id,
+                            name=tool_result.name,
+                            text=tool_text,
+                            is_error=tool_result.result.isError,
+                        )
+                    ],
+                )
+            )
+        elif images:
+            image_data, image_mime_type = images[0]
+            self._add_message(
+                RequestMessage(
+                    role=MessageRole.TOOL,
+                    content=[
+                        ToolImageOutputRequest(
+                            call_id=tool_result.call_id,
+                            name=tool_result.name,
+                            data=image_data,
+                            mime_type=ImageMimeType(image_mime_type),
+                            is_error=tool_result.result.isError,
+                        )
+                    ],
+                )
+            )
 
-    def shutdown(self):
-        self._logger.info("Shutting down.")
+        await self._run_llm()
