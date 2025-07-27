@@ -2,7 +2,7 @@
 
 Speed of Light (SOL) is a native AI Agent for the Linux desktop.
 
-You can extend its functionality using MCP, the [Model Context Protocol](https://modelcontextprotocol.io):
+You can extend its functionality using the [Model Context Protocol](https://modelcontextprotocol.io) (MCP), the USB-C port for AI applications:
 <div align="center">
   <img src="assets/sol-mapbox.png" alt="SOL Screenshot">
   <br><em>Example of SOL running the Mapbox MCP server.</em>
@@ -10,7 +10,7 @@ You can extend its functionality using MCP, the [Model Context Protocol](https:/
 
 ## Features
 - 🏠 Support for both local (default) and cloud LLM providers
-- 🔧 Extensible via MCP, usually described as the USB-C port for AI applications
+- 🔧 Extensible via MCP, supports both STDIO and Streamable HTTP servers
 - 🐧 Built-in tools that integrate with the Linux desktop (e.g., clipboard access)
 - 🎨 Developed with GNOME Adwaita for a modern look and compatibility with any desktop environment
 
@@ -94,13 +94,11 @@ To extend SOL's capabilities, you need to make more "tools" available to it. In 
 We currently support:
 
 - **MCP tools**: This is the primary mechanism to extend the tools available to SOL by a user. MCP is a provider agnostic standard which enables integrating with third-party providers and on-device functionality.
-
-- **Built-in tools**: These are tools defined and implemented by SOL and available together with the other tools above. For example, we include tools that allow SOL to read and write the clipboard content. One possibility is to eventually graduate these built-in tools as their own MCP servers to simplify SOL's architecture and make these tools available to any MCP client.
+- **Cloud tools**: These are pre-built tools that are provider-specific and executed on the provider's server. They are configured per model and don't require local implementation. Examples include web search tools available from providers like Google, Anthropic, and OpenAI.
 
 We currently do not support, but plan to:
 
-- **Cloud tools**: These are pre-built tools that are provider-specific and executed on the provider's server. They are configured per model and don't require local implementation. Examples include web search tools available from providers like Google, Anthropic, and OpenAI.
-
+- **Built-in tools**: These are tools defined and implemented by SOL and available together with the other tools above. For example, we include tools that allow SOL to read and write the clipboard content. One possibility is to eventually graduate these built-in tools as their own MCP servers to simplify SOL's architecture and make these tools available to any MCP client.
 - **Computer use**: These are also tools that are to some extent provider-specific ([example](https://platform.openai.com/docs/guides/tools-computer-use)), but they do require implementation on SOL's side.
 
 ## Reporting Issues
