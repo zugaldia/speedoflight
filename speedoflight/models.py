@@ -112,7 +112,7 @@ class ToolEnvironment(Enum):
 
 class ToolInputResponse(BaseBlock):
     call_id: str
-    environmet: ToolEnvironment
+    environment: ToolEnvironment
     name: str
     arguments: dict
 

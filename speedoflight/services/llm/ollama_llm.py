@@ -145,7 +145,7 @@ class OllamaLlm(BaseLlmService):
                 content.append(
                     ToolInputResponse(
                         call_id=generate_uuid(),  # Ollama does not return one
-                        environmet=ToolEnvironment.LOCAL,
+                        environment=ToolEnvironment.LOCAL,
                         name=tool_call.function.name,
                         arguments=dict(tool_call.function.arguments),
                     )

@@ -167,7 +167,7 @@ class AnthropicLlm(BaseLlmService):
                 content.append(
                     ToolInputResponse(
                         call_id=block.id,
-                        environmet=ToolEnvironment.LOCAL,
+                        environment=ToolEnvironment.LOCAL,
                         name=block.name,
                         arguments=block.input if isinstance(block.input, dict) else {},
                     )
@@ -176,7 +176,7 @@ class AnthropicLlm(BaseLlmService):
                 content.append(
                     ToolInputResponse(
                         call_id=block.id,
-                        environmet=ToolEnvironment.SERVER,
+                        environment=ToolEnvironment.SERVER,
                         name=block.name,
                         arguments=block.input if isinstance(block.input, dict) else {},
                     )
