@@ -6,11 +6,17 @@ from anthropic.types import (
     ImageBlockParam,
     Message,
     MessageParam,
+    ServerToolUseBlock,
+    TextBlock,
     TextBlockParam,
     ToolChoiceAutoParam,
     ToolParam,
     ToolResultBlockParam,
+    ToolUseBlock,
     ToolUseBlockParam,
+    WebSearchTool20250305Param,
+    WebSearchToolResultBlock,
+    WebSearchToolResultError,
 )
 from mcp import types
 
@@ -23,13 +29,17 @@ from speedoflight.models import (
     StopReason,
     TextBlockRequest,
     TextBlockResponse,
+    ToolEnvironment,
     ToolImageOutputRequest,
     ToolInputResponse,
     ToolTextOutputRequest,
+    ToolTextOutputResponse,
     Usage,
 )
 from speedoflight.services.llm.base_llm import BaseLlmService
-from speedoflight.utils import is_empty
+from speedoflight.utils import is_empty, safe_json
+
+TOOL_WEB_SEARCH_NAME = "web_search"
 
 
 class AnthropicLlm(BaseLlmService):
@@ -47,6 +57,7 @@ class AnthropicLlm(BaseLlmService):
         mcp_tools: dict[str, list[types.Tool]],
     ) -> ResponseMessage:
         messages: Iterable[MessageParam] = [self.to_native(msg) for msg in app_messages]
+
         tools: Iterable[ToolParam] = [
             ToolParam(
                 input_schema=tool.inputSchema,
@@ -58,18 +69,28 @@ class AnthropicLlm(BaseLlmService):
             for tool in tools_list
         ]
 
+        cloud_tools = []
+        if self._config.enable_web_search:
+            # TODO: Support additional parameters for web search
+            # https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/web-search-tool#tool-definition
+            cloud_tools.append(
+                WebSearchTool20250305Param(
+                    name=TOOL_WEB_SEARCH_NAME, type="web_search_20250305"
+                )
+            )
+
         result: Message = await self._client.messages.create(
             max_tokens=self._config.max_tokens,
             temperature=self._config.temperature,
             messages=messages,
             model=self._config.model,
-            tools=tools,
+            tools=tools + cloud_tools,
             tool_choice=ToolChoiceAutoParam(
                 type="auto", disable_parallel_tool_use=True
             ),
         )
 
-        # self._logger.info(f"Generated message: {result}")
+        self._logger.info(f"Generated message: {result}")
         return self.from_native(result)
 
     def to_native(self, app_msg: BaseMessage) -> MessageParam:
@@ -139,19 +160,49 @@ class AnthropicLlm(BaseLlmService):
     def from_native(self, native_msg: Message) -> ResponseMessage:
         content = []
         for block in native_msg.content:
-            if block.type == "text":
+            if isinstance(block, TextBlock):
+                # TODO: Support citations
                 content.append(TextBlockResponse(text=block.text))
-            elif block.type == "tool_use":
-                tool_input = block.input if isinstance(block.input, dict) else {}
+            elif isinstance(block, ToolUseBlock):
                 content.append(
                     ToolInputResponse(
                         call_id=block.id,
+                        environmet=ToolEnvironment.LOCAL,
                         name=block.name,
-                        arguments=tool_input,
+                        arguments=block.input if isinstance(block.input, dict) else {},
                     )
                 )
+            elif isinstance(block, ServerToolUseBlock):
+                content.append(
+                    ToolInputResponse(
+                        call_id=block.id,
+                        environmet=ToolEnvironment.SERVER,
+                        name=block.name,
+                        arguments=block.input if isinstance(block.input, dict) else {},
+                    )
+                )
+            elif isinstance(block, WebSearchToolResultBlock):
+                # TODO: Maybe rename to a dedicated ToolWebSearchOutputResponse?
+                if isinstance(block.content, WebSearchToolResultError):
+                    content.append(
+                        ToolTextOutputResponse(
+                            call_id=block.tool_use_id,
+                            name=TOOL_WEB_SEARCH_NAME,
+                            text=block.content.error_code,
+                            is_error=True,
+                        )
+                    )
+                else:
+                    content.append(
+                        ToolTextOutputResponse(
+                            call_id=block.tool_use_id,
+                            name=TOOL_WEB_SEARCH_NAME,
+                            text=safe_json(block.content),
+                            is_error=False,
+                        )
+                    )
             else:
-                self._logger.warning(f"Unsupported content block type: {block.type}")
+                self._logger.warning(f"Unsupported content block type: {type(block)}")
 
         if native_msg.role == "assistant":
             role = MessageRole.AI

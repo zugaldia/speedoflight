@@ -45,6 +45,7 @@ class AnthropicConfig(BaseLLMConfig):
     model: str = "claude-sonnet-4-0"
     max_tokens: int = 8192
     api_key: str
+    enable_web_search: bool = False
 
 
 class BaseMCPConfig(BaseModel):
@@ -104,13 +105,32 @@ class ImageBlockResponse(BaseBlock):
     encoded: str
 
 
+class ToolEnvironment(Enum):
+    LOCAL = "local"
+    SERVER = "server"
+
+
 class ToolInputResponse(BaseBlock):
     call_id: str
+    environmet: ToolEnvironment
     name: str
     arguments: dict
 
 
 class ToolTextOutputRequest(BaseBlock):
+    """Represents tool output from a local execution (e.g. MCP) that needs
+    to be added to the next LLM request."""
+
+    call_id: str
+    name: str
+    text: str
+    is_error: bool
+
+
+class ToolTextOutputResponse(BaseBlock):
+    """Represents tool output from a server execution (e.g. web search) that
+    does not need to be added to the next LLM request."""
+
     call_id: str
     name: str
     text: str
@@ -180,7 +200,12 @@ class ResponseMessage(BaseMessage):
     usage: Optional[Usage] = None
     stop_reason: Optional[StopReason] = None
     stop_sequence: Optional[str] = None
-    content: list[TextBlockResponse | ImageBlockResponse | ToolInputResponse]
+    content: list[
+        TextBlockResponse
+        | ImageBlockResponse
+        | ToolInputResponse
+        | ToolTextOutputResponse
+    ]
 
 
 class GBaseMessage(GObject.Object):
@@ -189,6 +214,16 @@ class GBaseMessage(GObject.Object):
         self.data = data
 
 
+#
+# Agent
+#
+
+
 class AgentRequest(BaseModel):
     session_id: str
     message: RequestMessage
+
+
+class AgentResponse(BaseModel):
+    is_error: bool
+    message: Optional[str] = None

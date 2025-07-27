@@ -56,7 +56,7 @@ env = {"ENV_VAR" = "value"}
 
 - **`[llms.<provider>]`**: Provider-specific configuration sections:
   - For Ollama: `model` specifies the model name (e.g., `"mistral-small:latest"`)
-  - For Anthropic: `model` and `api_key` (setting an API key is required)
+  - For Anthropic: `model` and `api_key` (setting an API key is required), and optionally `enable_web_search` (defaults to `false`) to give Claude direct access to real-time web content with automatic source citations
   - Additional providers coming soon.
 
 - **`[mcps.<server>]`**: Configuration for MCP servers. This allows extending SOL with additional tools. For example, to add the [Mapbox MCP](https://github.com/mapbox/mcp-server) pictured above:
