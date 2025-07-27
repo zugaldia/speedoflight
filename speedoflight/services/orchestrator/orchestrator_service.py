@@ -27,9 +27,9 @@ class OrchestratorService(BaseService):
     __gsignals__ = {
         AGENT_UPDATE_AI_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, (str,)),
         AGENT_UPDATE_TOOL_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, (str,)),
-        AGENT_READY_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, (int,)),
+        AGENT_READY_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, ()),
         AGENT_RUN_STARTED_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, ()),
-        AGENT_RUN_COMPLETED_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, ()),
+        AGENT_RUN_COMPLETED_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, (str,)),
     }
 
     def __init__(
@@ -83,17 +83,17 @@ class OrchestratorService(BaseService):
         self._logger.info("Emitting tool message.")
         self.safe_emit(AGENT_UPDATE_TOOL_SIGNAL, encoded_message)
 
-    def _on_agent_ready(self, agent_service, tool_count: int):
+    def _on_agent_ready(self, agent_service):
         self._logger.info("Agent is ready.")
-        self.safe_emit(AGENT_READY_SIGNAL, tool_count)
+        self.safe_emit(AGENT_READY_SIGNAL)
 
     def _on_agent_run_started(self, agent_service):
         self._logger.info("Agent run started.")
         self.safe_emit(AGENT_RUN_STARTED_SIGNAL)
 
-    def _on_agent_run_completed(self, agent_service):
+    def _on_agent_run_completed(self, agent_service, encoded_message: str):
         self._logger.info("Agent run completed.")
-        self.safe_emit(AGENT_RUN_COMPLETED_SIGNAL)
+        self.safe_emit(AGENT_RUN_COMPLETED_SIGNAL, encoded_message)
 
     def shutdown(self):
         self._logger.info("Shutting down.")

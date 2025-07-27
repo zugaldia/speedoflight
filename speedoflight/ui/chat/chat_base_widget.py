@@ -44,6 +44,9 @@ class ChatBaseWidget(Gtk.Box):
         label.set_selectable(True)
         return label
 
+    def _get_icon_name(self, icon_name: str, is_error: bool = False) -> str:
+        return "dialog-error-symbolic" if is_error else icon_name
+
     def _add_plain_text(self, text: str, class_name: str) -> None:
         label = self._get_default_label()
         label.get_style_context().add_class(class_name)

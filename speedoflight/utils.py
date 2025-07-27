@@ -6,12 +6,14 @@ https://docs.flatpak.org/en/latest/conventions.html#xdg-base-directories
 
 """
 
+import json
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from gi.repository import GLib  # type: ignore
+from pydantic import BaseModel
 
 from speedoflight.constants import APPLICATION_ID
 
@@ -26,6 +28,21 @@ def get_now_utc() -> datetime:
 
 def is_empty(text: Optional[str]) -> bool:
     return not text or not text.strip()
+
+
+def safe_json(object: Any) -> str:
+    try:
+        if isinstance(object, list) and all(
+            isinstance(item, BaseModel) for item in object
+        ):
+            # List of BaseModel objects (e.g. web search results)
+            return json.dumps([item.model_dump_json() for item in object])
+        elif isinstance(object, BaseModel):
+            return object.model_dump_json()
+        else:
+            return json.dumps(object)
+    except Exception as e:
+        return f"Error serializing object to JSON: {e}"
 
 
 def get_cache_path() -> Path:
