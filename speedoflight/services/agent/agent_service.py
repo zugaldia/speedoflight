@@ -9,6 +9,7 @@ from speedoflight.constants import (
 )
 from speedoflight.models import (
     AgentRequest,
+    AgentResponse,
     BaseMessage,
     ImageMimeType,
     MessageRole,
@@ -26,9 +27,9 @@ from speedoflight.services.mcp.mcp_service import McpService
 
 class AgentService(BaseService):
     __gsignals__ = {
-        AGENT_READY_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, (int,)),
+        AGENT_READY_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, ()),
         AGENT_RUN_STARTED_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, ()),
-        AGENT_RUN_COMPLETED_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, ()),
+        AGENT_RUN_COMPLETED_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, (str,)),
         AGENT_UPDATE_AI_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, (str,)),
         AGENT_UPDATE_TOOL_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, (str,)),
     }
@@ -57,20 +58,20 @@ class AgentService(BaseService):
 
     def _add_message(self, message: BaseMessage):
         """Add a message to the conversation history and notify the UI."""
+        self._messages.append(message)
         if message.role == MessageRole.AI:
             self.safe_emit(AGENT_UPDATE_AI_SIGNAL, message.model_dump_json())
         elif message.role == MessageRole.TOOL:
             self.safe_emit(AGENT_UPDATE_TOOL_SIGNAL, message.model_dump_json())
 
-        self._messages.append(message)
         total_messages = len(self._messages)
-        self._logger.info(f"Added message (total: {total_messages}): {message}")
+        encoded = message.model_dump_json()
+        snippet = encoded[:75] + ("..." if len(encoded) > 75 else "")
+        self._logger.info(f"Added message (total: {total_messages}): {snippet}")
 
     def _setup(self):
         self._logger.info("Setting up agent.")
-
-        # FIXME: Update the UI as new tools are encountered.
-        self.safe_emit(AGENT_READY_SIGNAL, 0)
+        self.safe_emit(AGENT_READY_SIGNAL)
 
     async def run(self, request: AgentRequest):
         self._logger.info(f"Running agent with request: {request}")
@@ -90,23 +91,37 @@ class AgentService(BaseService):
             self._add_message(message)
             await self._handle_response(message)
         except Exception as e:
-            self._logger.error(f"Error during LLM generation: {e}")
+            agent_message = f"Error during LLM generation: {e}"
+            self._logger.error(agent_message)
+            response = AgentResponse(is_error=True, message=agent_message)
+            self.safe_emit(AGENT_RUN_COMPLETED_SIGNAL, response.model_dump_json())
 
     async def _handle_response(self, message: ResponseMessage):
         if message.stop_reason == StopReason.END_TURN:
-            self._logger.info("End of turn detected.")
-            self.safe_emit(AGENT_RUN_COMPLETED_SIGNAL)
+            response = AgentResponse(is_error=False)
+            self.safe_emit(AGENT_RUN_COMPLETED_SIGNAL, response.model_dump_json())
         elif message.stop_reason == StopReason.TOOL_USE:
-            self._logger.info("Tool call detected, processing tool.")
-            await self._handle_tool_use(message)
+            try:
+                self._logger.info("Tool call detected, processing tool.")
+                await self._handle_tool_use(message)
+            except Exception as e:
+                agent_message = f"Error during tool processing: {e}"
+                self._logger.error(agent_message)
+                response = AgentResponse(is_error=True, message=agent_message)
+                self.safe_emit(AGENT_RUN_COMPLETED_SIGNAL, response.model_dump_json())
         else:
-            self._logger.warning(f"Unhandled stop reason: {message.stop_reason}")
+            agent_message = f"Unhandled stop reason: {message.stop_reason}"
+            self._logger.warning(agent_message)
+            response = AgentResponse(is_error=True, message=agent_message)
+            self.safe_emit(AGENT_RUN_COMPLETED_SIGNAL, response.model_dump_json())
 
     async def _handle_tool_use(self, message: ResponseMessage):
         tool_result = await self._mcp.call_tool(message)
         if tool_result is None:
-            # TODO: End turn?
-            self._logger.warning("Tool call returned no result.")
+            agent_message = "Tool call returned no result."
+            self._logger.warning(agent_message)
+            response = AgentResponse(is_error=True, message=agent_message)
+            self.safe_emit(AGENT_RUN_COMPLETED_SIGNAL, response.model_dump_json())
             return
 
         # Anthropic requires each `tool_use` must have a single `tool_result`
