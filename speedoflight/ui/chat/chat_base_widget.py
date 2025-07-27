@@ -111,7 +111,8 @@ class ChatBaseWidget(Gtk.Box):
             loader.write(image_data)
             loader.close()
             return loader.get_pixbuf()
-        except Exception:
+        except Exception as e:
+            self._logger.error(f"Failed to decode base64 image: {e}")
             return None
 
     def _add_expandable_image(

@@ -36,7 +36,7 @@ def safe_json(object: Any) -> str:
             isinstance(item, BaseModel) for item in object
         ):
             # List of BaseModel objects (e.g. web search results)
-            return json.dumps([item.model_dump_json() for item in object])
+            return json.dumps([item.model_dump() for item in object])
         elif isinstance(object, BaseModel):
             return object.model_dump_json()
         else:
