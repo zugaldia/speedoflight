@@ -7,7 +7,7 @@ from speedoflight.models import (
     ToolTextOutputResponse,
 )
 from speedoflight.ui.chat.chat_base_widget import ChatBaseWidget
-from speedoflight.utils import is_empty, safe_json
+from speedoflight.utils import safe_json
 
 
 class ChatAiWidget(ChatBaseWidget):
