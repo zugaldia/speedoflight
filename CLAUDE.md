@@ -20,8 +20,8 @@ make format-check # Run ruff format check on speedoflight/
 
 ## Architecture Overview
 - Speed of Light is a GTK4-based Linux desktop application
-- It has service-oriented architecture developed with Python.
-- The UI follows the Model-View-ViewModel (MVVM) pattern.
+- It has service-oriented architecture developed with Python
+- The UI follows the Model-View-ViewModel (MVVM) pattern
 
 ### Core Services Pattern
 All services inherit from `BaseService` (base_service.py) which provides:
@@ -30,14 +30,17 @@ All services inherit from `BaseService` (base_service.py) which provides:
 
 ### Service Hierarchy
 1. **ConfigurationService**: Manages app configuration (model selection, MCP servers)
-2. **AgentService**: Handles LangChain/LangGraph agent execution with async operations
-3. **OrchestratorService**: Coordinates between UI and agent, manages user sessions
+2. **OrchestratorService**: Coordinates between UI and agent, manages user sessions
+3. **AgentService**: Handles MCP and LLM execution with async operations
+4. **LlmService**: Manages LLM provider selection and native SDK integration
+5. **McpService**: Manages MCP server connections and tool execution
 
 ### UI Framework
 - GTK4 with Adwaita design system (dark mode only)
 - PyGObject bindings for Python
 - Custom styling via `speedoflight/data/style.css`
 - Main window components in `speedoflight/ui/main/`
+- Chat messages rendered using GtkSourceView with markdown syntax highlighting
 
 ### MVVM Pattern Implementation
 - **ViewModels**: Inherit from `BaseViewModel` (base_view_model.py) with GObject support and logging
@@ -45,24 +48,29 @@ All services inherit from `BaseService` (base_service.py) which provides:
 - All UI components follow GObject signal-based communication
 
 ### Key Dependencies
-- **LangChain/LangGraph**: AI agent execution framework
+- **MCP**: Official Model Context Protocol (MCP) Python SDK
 - **PyGObject**: GTK4 Python bindings
-- Multiple LLM providers: Anthropic, OpenAI, Google, Ollama
+- **Native LLM SDKs**: Direct integration with provider SDKs
+  - Anthropic SDK for Claude models
+  - Ollama SDK for local models
+  - Additional providers can be added by implementing `BaseLlmService`
 
 ### Threading & Signals
-- Services run in Python threads to avoid blocking UI
+- Services use asyncio with a GLibEventLoopPolicy to avoid blocking UI
 - Use `BaseService.safe_emit()` to emit signals from threads (wraps with GLib.idle_add)
 - All signal emissions must be thread-safe for main GTK loop
 
 ### Agent Architecture
-- Uses LangGraph ReAct agent with in-memory checkpointing
-- Supports multiple LLM providers via LangChain's `init_chat_model`
+- Supports multiple LLM providers using their native SDKs
 - Extensible via Model Context Protocol (MCP) servers
-- Message types: HumanMessage, AIMessage, ToolMessage
+- Clean abstraction layers:
+  - `BaseLlmService`: Interface for LLM providers
+  - `BaseServer`: Interface for MCP server types (stdio, HTTP)
 
 ### Configuration
-Configuration is managed via `config.json`:
-- `model`: LLM model in format `provider:model_name` (default: `ollama:llama3.2`)
-- `mcp_servers`: Dictionary of MCP server configurations
+Configuration is managed via `config.toml` (TOML format):
+- `llm`: LLM provider selection (e.g., "ollama", "anthropic")
+- `[llms.<provider>]`: Provider-specific configuration sections
+- `[mcps.<server>]`: MCP server configurations
 
-The app creates a default config if none exists, using local Ollama with Llama 3.2.
+The app creates a default config if none exists, using local Ollama.

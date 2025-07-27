@@ -1,5 +1,8 @@
 .human-message {
-    background-color: #333333;
+    padding: 10px;
+}
+
+.markdown-message {
     padding: 10px;
     border-radius: 10px;
 }

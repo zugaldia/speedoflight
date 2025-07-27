@@ -24,7 +24,9 @@ class ChatWidget(Gtk.ListView):
         factory.connect("bind", self._on_factory_bind)
         self.set_factory(factory)
 
-    def _on_items_changed(self, store, position, removed, added):
+    def _on_items_changed(
+        self, store: Gio.ListStore, position: int, removed: int, added: int
+    ):
         if added > 0:
             GLib.idle_add(self._scroll_to_bottom)
 
@@ -34,7 +36,9 @@ class ChatWidget(Gtk.ListView):
             self.scroll_to(item_count - 1, Gtk.ListScrollFlags.FOCUS)
         return False
 
-    def _on_factory_setup(self, factory, list_item) -> None:
+    def _on_factory_setup(
+        self, factory: Gtk.SignalListItemFactory, list_item: Gtk.ListItem
+    ) -> None:
         label = Gtk.Label(label="Loading...")
         label.set_wrap(True)
         label.set_xalign(0.0)
@@ -45,17 +49,23 @@ class ChatWidget(Gtk.ListView):
         label.set_margin_end(DEFAULT_MARGIN)
         list_item.set_child(label)
 
-    def _on_factory_bind(self, factory, list_item) -> None:
-        message: GBaseMessage = list_item.get_item()
+    def _on_factory_bind(
+        self, factory: Gtk.SignalListItemFactory, list_item: Gtk.ListItem
+    ) -> None:
+        message = list_item.get_item()
+        if message is None or not isinstance(message, GBaseMessage):
+            self._logger.warning("List item has no valid message data.")
+            return
+
         widget: Union[ChatHumanWidget, ChatAiWidget, ChatToolWidget, Gtk.Label]
-        if message.data.type == MessageRole.HUMAN.value:
+        if message.data.role == MessageRole.HUMAN:
             widget = ChatHumanWidget(message)
-        elif message.data.type == MessageRole.AI.value:
+        elif message.data.role == MessageRole.AI:
             widget = ChatAiWidget(message)
-        elif message.data.type == MessageRole.TOOL.value:
+        elif message.data.role == MessageRole.TOOL:
             widget = ChatToolWidget(message)
         else:
-            widget = Gtk.Label(label=f"Unable to render message({message.data.type}).")
+            widget = Gtk.Label(label=f"Unable to render message ({message.data.role}).")
         list_item.set_child(widget)
 
     def add_message(self, message: GBaseMessage):
