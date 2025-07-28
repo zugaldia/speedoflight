@@ -15,12 +15,14 @@ from speedoflight.models import (
     MessageRole,
     RequestMessage,
     ResponseMessage,
+    SolMessage,
     StopReason,
     ToolImageOutputRequest,
     ToolTextOutputRequest,
 )
 from speedoflight.services.base_service import BaseService
 from speedoflight.services.configuration import ConfigurationService
+from speedoflight.services.history import HistoryService
 from speedoflight.services.llm.llm_service import LlmService
 from speedoflight.services.mcp.mcp_service import McpService
 
@@ -38,36 +40,34 @@ class AgentService(BaseService):
         self,
         configuration: ConfigurationService,
         llm: LlmService,
+        history: HistoryService,
         mcp: McpService,
     ):
         super().__init__(service_name="agent")
         self._configuration = configuration
         self._llm = llm
+        self._history = history
         self._mcp = mcp
-
-        # TODO: This is a naive implementation. We should probably create a
-        # memory service where we track tokens limits and summarize old
-        # history as needed.
-        self._messages: list[BaseMessage] = []
-
+        self._session_id: str | None = None
         self._setup()
         self._logger.info("Initialized.")
+
+    def set_session_id(self, session_id: str):
+        """Set the session ID for this agent and share it with the history service."""
+        self._session_id = session_id
+        self._history.set_session_id(session_id)
+        self._logger.info(f"Session ID set to: {session_id}")
 
     def shutdown(self):
         pass
 
     def _add_message(self, message: BaseMessage):
         """Add a message to the conversation history and notify the UI."""
-        self._messages.append(message)
+        self._history.add_message(message)
         if message.role == MessageRole.AI:
             self.safe_emit(AGENT_UPDATE_AI_SIGNAL, message.model_dump_json())
         elif message.role == MessageRole.TOOL:
             self.safe_emit(AGENT_UPDATE_TOOL_SIGNAL, message.model_dump_json())
-
-        total_messages = len(self._messages)
-        encoded = message.model_dump_json()
-        snippet = encoded[:75] + ("..." if len(encoded) > 75 else "")
-        self._logger.info(f"Added message (total: {total_messages}): {snippet}")
 
     def _setup(self):
         self._logger.info("Setting up agent.")
@@ -79,22 +79,31 @@ class AgentService(BaseService):
         self._add_message(request.message)
         await self._run_llm()
 
+    def _emit_error(self, error_message: str):
+        agent_response = AgentResponse(
+            is_error=True,
+            message=SolMessage(
+                role=MessageRole.SOL,
+                message=error_message,
+            ),
+        )
+        self.safe_emit(AGENT_RUN_COMPLETED_SIGNAL, agent_response.model_dump_json())
+
     async def _run_llm(self):
-        total_messages = len(self._messages)
+        total_messages = len(self._history.messages)
         total_tools = len(self._mcp.tools)
         self._logger.info(
             f"Running agent with {total_messages} messages and {total_tools} tools."
         )
 
         try:
-            message = await self._llm.generate_message(self._messages, self._mcp.tools)
+            message = await self._llm.generate_message(
+                self._history.messages, self._mcp.tools
+            )
             self._add_message(message)
             await self._handle_response(message)
         except Exception as e:
-            agent_message = f"Error during LLM generation: {e}"
-            self._logger.error(agent_message)
-            response = AgentResponse(is_error=True, message=agent_message)
-            self.safe_emit(AGENT_RUN_COMPLETED_SIGNAL, response.model_dump_json())
+            self._emit_error(f"Error during LLM generation: {e}")
 
     async def _handle_response(self, message: ResponseMessage):
         if message.stop_reason == StopReason.END_TURN:
@@ -105,23 +114,14 @@ class AgentService(BaseService):
                 self._logger.info("Tool call detected, processing tool.")
                 await self._handle_tool_use(message)
             except Exception as e:
-                agent_message = f"Error during tool processing: {e}"
-                self._logger.error(agent_message)
-                response = AgentResponse(is_error=True, message=agent_message)
-                self.safe_emit(AGENT_RUN_COMPLETED_SIGNAL, response.model_dump_json())
+                self._emit_error(f"Error during tool processing: {e}")
         else:
-            agent_message = f"Unhandled stop reason: {message.stop_reason}"
-            self._logger.warning(agent_message)
-            response = AgentResponse(is_error=True, message=agent_message)
-            self.safe_emit(AGENT_RUN_COMPLETED_SIGNAL, response.model_dump_json())
+            self._emit_error(f"Unhandled stop reason: {message.stop_reason}")
 
     async def _handle_tool_use(self, message: ResponseMessage):
         tool_result = await self._mcp.call_tool(message)
         if tool_result is None:
-            agent_message = "Tool call returned no result."
-            self._logger.warning(agent_message)
-            response = AgentResponse(is_error=True, message=agent_message)
-            self.safe_emit(AGENT_RUN_COMPLETED_SIGNAL, response.model_dump_json())
+            self._emit_error("Tool call returned no result.")
             return
 
         # Anthropic requires each `tool_use` must have a single `tool_result`

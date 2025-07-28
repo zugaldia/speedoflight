@@ -1,3 +1,5 @@
+import os
+
 from mcp import types
 
 from speedoflight.models import (
@@ -23,16 +25,19 @@ class LlmService(BaseService):
 
     def _create_llm_client(self) -> BaseLlmService:
         """Create the appropriate LLM client based on configuration."""
-        config = self._configuration.config
-        provider_key = config.llm.value
-        base_config = config.llms.get(provider_key, None)
+        provider_key = self._configuration.config.llm.value
+        base_config = (
+            self._configuration.config.llms.get(provider_key, None)
+            if self._configuration.config.llms
+            else None
+        )
 
         # Provider selection
-        if config.llm == LLMProvider.ANTHROPIC:
+        if self._configuration.config.llm == LLMProvider.ANTHROPIC:
             llm_config = (
                 base_config
                 if isinstance(base_config, AnthropicConfig)
-                else AnthropicConfig()
+                else AnthropicConfig(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
             )
             return AnthropicLlm(llm_config)
         else:

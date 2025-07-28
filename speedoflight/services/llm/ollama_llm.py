@@ -77,52 +77,40 @@ class OllamaLlm(BaseLlmService):
                 self._logger.info(f"- Available model: {model_name} (supports tools)")
 
     def to_native(self, app_msg: BaseMessage) -> Mapping[str, Any] | Message:
+        if isinstance(app_msg, ResponseMessage) and app_msg.raw is not None:
+            return Message(
+                role=app_msg.raw.role,
+                content=app_msg.raw.content,
+            )
+
         if app_msg.role == MessageRole.HUMAN:
             role = "user"
-        elif app_msg.role == MessageRole.AI:
-            role = "assistant"
         elif app_msg.role == MessageRole.TOOL:
             role = "tool"
         else:
             raise ValueError(f"Unsupported message role: {app_msg.role}")
 
-        content = (
-            app_msg.content
-            if isinstance(app_msg, (RequestMessage, ResponseMessage))
-            else []
-        )
-
+        content = app_msg.content if isinstance(app_msg, RequestMessage) else []
         if len(content) != 1:
-            # Do we need to convert the application message into
+            # TODO: Do we need to convert the application message into
             # multiple native messages in this situation?
             self._logger.warning("Only one content block is supported in Ollama.")
 
         block = next(iter(content), None)
-        if isinstance(block, (TextBlockRequest, TextBlockResponse)):
+        if isinstance(block, TextBlockRequest):
             return Message(role=role, content=block.text)
-        elif isinstance(block, ToolInputResponse):
-            return Message(
-                role=role,
-                tool_calls=[
-                    Message.ToolCall(
-                        function=Message.ToolCall.Function(
-                            name=block.name, arguments=block.arguments
-                        )
-                    )
-                ],
-            )
         elif isinstance(block, ToolTextOutputRequest):
             # Ollama's native Message does not support tool output!?
             return {"role": "tool", "content": block.text, "tool_name": block.name}
         elif isinstance(block, ToolImageOutputRequest):
-            # Better way to handle this?
+            # Is there a better way to handle this?
             return {
                 "role": "tool",
                 "content": f"Image generated ({block.mime_type.value}) and already shown to the user.",
                 "tool_name": block.name,
             }
         else:
-            raise ValueError(f"Unsupported block type: {type(block)}")
+            raise ValueError(f"Unsupported application block type: {type(block)}")
 
     def from_native(self, native_msg: ChatResponse) -> ResponseMessage:
         stop_reason = StopReason.END_TURN
@@ -154,7 +142,9 @@ class OllamaLlm(BaseLlmService):
         if native_msg.message.role == "assistant":
             role = MessageRole.AI
         else:
-            raise ValueError(f"Unexpected message role: {native_msg.message.role}")
+            raise ValueError(
+                f"Unexpected native message role: {native_msg.message.role}"
+            )
 
         usage = Usage(
             input_tokens=native_msg.prompt_eval_count,
@@ -162,6 +152,7 @@ class OllamaLlm(BaseLlmService):
         )
 
         return ResponseMessage(
+            raw=native_msg,
             role=role,
             content=content,
             provider=self.service_name,

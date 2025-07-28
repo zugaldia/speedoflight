@@ -11,6 +11,7 @@ DEFAULT_MARGIN = 10
 # Agent Service Signals
 AGENT_UPDATE_AI_SIGNAL = "agent-update-ai"
 AGENT_UPDATE_TOOL_SIGNAL = "agent-update-tool"
+AGENT_UPDATE_SOL_SIGNAL = "agent-update-sol"
 AGENT_READY_SIGNAL = "agent-ready"
 AGENT_RUN_STARTED_SIGNAL = "agent-run-started"
 AGENT_RUN_COMPLETED_SIGNAL = "agent-run-completed"

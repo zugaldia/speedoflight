@@ -7,6 +7,7 @@ from speedoflight.constants import (
     AGENT_RUN_COMPLETED_SIGNAL,
     AGENT_RUN_STARTED_SIGNAL,
     AGENT_UPDATE_AI_SIGNAL,
+    AGENT_UPDATE_SOL_SIGNAL,
     AGENT_UPDATE_TOOL_SIGNAL,
 )
 from speedoflight.models import AgentResponse
@@ -19,6 +20,7 @@ from speedoflight.ui.main.main_view_state import MainViewState
 class MainViewModel(BaseViewModel):
     __gsignals__ = {
         AGENT_UPDATE_AI_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, (str,)),
+        AGENT_UPDATE_SOL_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, (str,)),
         AGENT_UPDATE_TOOL_SIGNAL: (GObject.SignalFlags.RUN_FIRST, None, (str,)),
     }
 
@@ -64,11 +66,14 @@ class MainViewModel(BaseViewModel):
         self.view_state.input_enabled = True
         self.view_state.activity_mode = False
         response = AgentResponse.model_validate_json(encoded_message)
-        if response.is_error:
-            error_msg = response.message or "Unknown error occurred"
-            self.view_state.status_text = error_msg
-        else:
+        if not response.is_error:
             self.view_state.status_text = "Done."
+            return
+
+        # Something went wrong
+        self.view_state.status_text = "The agent encountered an error."
+        if response.message is not None:
+            self.emit(AGENT_UPDATE_SOL_SIGNAL, response.message.model_dump_json())
 
     def _on_agent_update_ai(self, _: OrchestratorService, encoded_message: str):
         self.emit(AGENT_UPDATE_AI_SIGNAL, encoded_message)

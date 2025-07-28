@@ -46,10 +46,11 @@ class OrchestratorService(BaseService):
         self._agent.connect(AGENT_READY_SIGNAL, self._on_agent_ready)
         self._agent.connect(AGENT_RUN_STARTED_SIGNAL, self._on_agent_run_started)
         self._agent.connect(AGENT_RUN_COMPLETED_SIGNAL, self._on_agent_run_completed)
+        self._agent.set_session_id(self._session_id)
 
         self._agent_task: asyncio.Task | None = None
 
-        self._logger.info("-> Initialized.")
+        self._logger.info("Initialized.")
 
     def run_agent(self, message: str):
         self._logger.info("Running agent.")
