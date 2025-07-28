@@ -22,10 +22,10 @@ class BaseLlmService(BaseService):
 
     @abstractmethod
     def to_native(self, app_msg: BaseMessage) -> Any:
-        """Convert any BaseMessage to provider's native message format."""
+        """Convert human/tool-generated messages to the AI's native message format."""
         pass
 
     @abstractmethod
     def from_native(self, native_msg: Any) -> ResponseMessage:
-        """Convert provider's native message format to a ResponseMessage."""
+        """Convert AI's native message format to an application ResponseMessage."""
         pass

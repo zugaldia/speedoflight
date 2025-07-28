@@ -13,7 +13,6 @@ from anthropic.types import (
     ToolParam,
     ToolResultBlockParam,
     ToolUseBlock,
-    ToolUseBlockParam,
     WebSearchTool20250305Param,
     WebSearchToolResultBlock,
     WebSearchToolResultError,
@@ -90,38 +89,25 @@ class AnthropicLlm(BaseLlmService):
             ),
         )
 
-        # self._logger.info(f"Generated message: {result}")
         return self.from_native(result)
 
     def to_native(self, app_msg: BaseMessage) -> MessageParam:
-        if app_msg.role == MessageRole.HUMAN:
-            role = "user"
-        elif app_msg.role == MessageRole.AI:
-            role = "assistant"
-        elif app_msg.role == MessageRole.TOOL:
+        if isinstance(app_msg, ResponseMessage) and app_msg.raw is not None:
+            return MessageParam(
+                role=app_msg.raw.role,
+                content=app_msg.raw.content,
+            )
+
+        if app_msg.role in [MessageRole.HUMAN, MessageRole.TOOL]:
             role = "user"  # Anthropic treats tool responses as user messages
         else:
             raise ValueError(f"Unsupported message role: {app_msg.role}")
 
         content = []
-        message_content = (
-            app_msg.content
-            if isinstance(app_msg, (RequestMessage, ResponseMessage))
-            else []
-        )
-
-        for block in message_content:
-            if isinstance(block, (TextBlockRequest, TextBlockResponse)):
+        req_content = app_msg.content if isinstance(app_msg, RequestMessage) else []
+        for block in req_content:
+            if isinstance(block, TextBlockRequest):
                 content.append(TextBlockParam(type="text", text=block.text))
-            elif isinstance(block, ToolInputResponse):
-                content.append(
-                    ToolUseBlockParam(
-                        type="tool_use",
-                        id=block.call_id,
-                        name=block.name,
-                        input=block.arguments,
-                    )
-                )
             elif isinstance(block, ToolTextOutputRequest):
                 content.append(
                     ToolResultBlockParam(
@@ -150,7 +136,14 @@ class AnthropicLlm(BaseLlmService):
                     )
                 )
             else:
-                self._logger.warning(f"Unsupported content block type: {type(block)}")
+                self._logger.warning(
+                    f"Unsupported app content block type: {type(block)}"
+                )
+
+        if len(content) == 0:
+            self._logger.warning(
+                f"No supported native content in application message: {app_msg}"
+            )
 
         return MessageParam(
             role=role,
@@ -158,10 +151,40 @@ class AnthropicLlm(BaseLlmService):
         )
 
     def from_native(self, native_msg: Message) -> ResponseMessage:
+        if native_msg.role == "assistant":
+            role = MessageRole.AI
+        else:
+            raise ValueError(f"Unsupported native message role: {native_msg.role}")
+
+        stop_reason = StopReason.END_TURN
+        if native_msg.stop_reason == "end_turn":
+            stop_reason = StopReason.END_TURN
+        elif native_msg.stop_reason == "max_tokens":
+            stop_reason = StopReason.MAX_TOKENS
+        elif native_msg.stop_reason == "stop_sequence":
+            stop_reason = StopReason.STOP_SEQUENCE
+        elif native_msg.stop_reason == "tool_use":
+            stop_reason = StopReason.TOOL_USE
+        elif native_msg.stop_reason == "pause_turn":
+            stop_reason = StopReason.PAUSE_TURN
+        elif native_msg.stop_reason == "refusal":
+            stop_reason = StopReason.REFUSAL
+        else:
+            self._logger.warning(
+                f"Unsupported native stop reason: {native_msg.stop_reason}"
+            )
+
+        usage = Usage(
+            input_tokens=native_msg.usage.input_tokens,
+            output_tokens=native_msg.usage.output_tokens,
+        )
+
         content = []
         for block in native_msg.content:
             if isinstance(block, TextBlock):
-                # TODO: Support citations
+                # TODO: When citations are present, Anthropic splits the text
+                # response into multiple text blocks, some of them with citations
+                # content. This is making the rendering right now a bit strange.
                 content.append(TextBlockResponse(text=block.text))
             elif isinstance(block, ToolUseBlock):
                 content.append(
@@ -202,35 +225,12 @@ class AnthropicLlm(BaseLlmService):
                         )
                     )
             else:
-                self._logger.warning(f"Unsupported content block type: {type(block)}")
-
-        if native_msg.role == "assistant":
-            role = MessageRole.AI
-        else:
-            raise ValueError(f"Unsupported message role: {native_msg.role}")
-
-        stop_reason = StopReason.END_TURN
-        if native_msg.stop_reason == "end_turn":
-            stop_reason = StopReason.END_TURN
-        elif native_msg.stop_reason == "max_tokens":
-            stop_reason = StopReason.MAX_TOKENS
-        elif native_msg.stop_reason == "stop_sequence":
-            stop_reason = StopReason.STOP_SEQUENCE
-        elif native_msg.stop_reason == "tool_use":
-            stop_reason = StopReason.TOOL_USE
-        elif native_msg.stop_reason == "pause_turn":
-            stop_reason = StopReason.PAUSE_TURN
-        elif native_msg.stop_reason == "refusal":
-            stop_reason = StopReason.REFUSAL
-        else:
-            self._logger.warning(f"Unsupported stop reason: {native_msg.stop_reason}")
-
-        usage = Usage(
-            input_tokens=native_msg.usage.input_tokens,
-            output_tokens=native_msg.usage.output_tokens,
-        )
+                self._logger.warning(
+                    f"Unsupported native content block type: {type(block)}"
+                )
 
         return ResponseMessage(
+            raw=native_msg,
             role=role,
             content=content,
             provider=self.service_name,
