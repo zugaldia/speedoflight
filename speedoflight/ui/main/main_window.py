@@ -4,6 +4,7 @@ from gi.repository import Adw, Gdk, GObject, Gtk  # type: ignore
 
 from speedoflight.constants import (
     AGENT_UPDATE_AI_SIGNAL,
+    AGENT_UPDATE_SOL_SIGNAL,
     AGENT_UPDATE_TOOL_SIGNAL,
     APPLICATION_NAME,
 )
@@ -12,6 +13,7 @@ from speedoflight.models import (
     MessageRole,
     RequestMessage,
     ResponseMessage,
+    SolMessage,
     TextBlockRequest,
 )
 from speedoflight.ui.chat.chat_widget import ChatWidget
@@ -35,6 +37,7 @@ class MainWindow(Adw.ApplicationWindow):
 
         self._view_model = view_model
         self._view_model.connect(AGENT_UPDATE_AI_SIGNAL, self._on_agent_update_ai)
+        self._view_model.connect(AGENT_UPDATE_SOL_SIGNAL, self._on_agent_update_sol)
         self._view_model.connect(AGENT_UPDATE_TOOL_SIGNAL, self._on_agent_update_tool)
         self._view_model.view_state.connect(
             "notify::status-text", self._on_status_text_changed
@@ -99,6 +102,11 @@ class MainWindow(Adw.ApplicationWindow):
     def _on_agent_update_ai(self, view_model, encoded_message: str):
         ai_message = ResponseMessage.model_validate_json(encoded_message)
         message = GBaseMessage(data=ai_message)
+        self._chat_widget.add_message(message)
+
+    def _on_agent_update_sol(self, view_model, encoded_message: str):
+        sol_message = SolMessage.model_validate_json(encoded_message)
+        message = GBaseMessage(data=sol_message)
         self._chat_widget.add_message(message)
 
     def _on_agent_update_tool(self, view_model, encoded_message: str):

@@ -1,5 +1,4 @@
 import logging
-from typing import Union
 
 from gi.repository import Gio, GLib, Gtk  # type: ignore
 
@@ -7,6 +6,7 @@ from speedoflight.constants import DEFAULT_MARGIN
 from speedoflight.models import GBaseMessage, MessageRole
 from speedoflight.ui.chat.chat_ai_widget import ChatAiWidget
 from speedoflight.ui.chat.chat_human_widget import ChatHumanWidget
+from speedoflight.ui.chat.chat_sol_widget import ChatSolWidget
 from speedoflight.ui.chat.chat_tool_widget import ChatToolWidget
 
 
@@ -57,16 +57,18 @@ class ChatWidget(Gtk.ListView):
             self._logger.warning("List item has no valid message data.")
             return
 
-        widget: Union[ChatHumanWidget, ChatAiWidget, ChatToolWidget, Gtk.Label]
-        if message.data.role == MessageRole.HUMAN:
-            widget = ChatHumanWidget(message)
+        if message.data.role == MessageRole.SOL:
+            list_item.set_child(ChatSolWidget(message))
+        elif message.data.role == MessageRole.HUMAN:
+            list_item.set_child(ChatHumanWidget(message))
         elif message.data.role == MessageRole.AI:
-            widget = ChatAiWidget(message)
+            list_item.set_child(ChatAiWidget(message))
         elif message.data.role == MessageRole.TOOL:
-            widget = ChatToolWidget(message)
+            list_item.set_child(ChatToolWidget(message))
         else:
-            widget = Gtk.Label(label=f"Unable to render message ({message.data.role}).")
-        list_item.set_child(widget)
+            list_item.set_child(
+                Gtk.Label(label=f"Unable to render message ({message.data.role}).")
+            )
 
     def add_message(self, message: GBaseMessage):
         self.store.append(message)
