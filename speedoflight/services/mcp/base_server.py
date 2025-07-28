@@ -5,7 +5,7 @@ from contextlib import AsyncExitStack
 from typing import Any
 
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
-from gi.repository import GObject  # type: ignore
+from gi.repository import GLib, GObject  # type: ignore
 from mcp import ClientSession, Implementation, ServerCapabilities, types
 from mcp.shared.message import SessionMessage
 
@@ -61,6 +61,12 @@ class BaseServer(GObject.Object):
             except Exception as e:
                 logging.error(f"Error shutting down {self.server_name}: {e}")
 
+    def safe_emit(self, signal_name: str, *args):
+        try:
+            GLib.idle_add(self.emit, signal_name, *args)
+        except Exception as e:
+            self._logger.error(f"Error emitting signal ({signal_name}): {e}")
+
     async def _initialize_session(
         self,
         read_stream: MemoryObjectReceiveStream[SessionMessage | Exception],
@@ -76,7 +82,7 @@ class BaseServer(GObject.Object):
         self._serverInfo = result.serverInfo
         self._instructions = result.instructions
         self._session = session
-        self.emit(SERVER_INITIALIZED_SIGNAL, self.server_name)
+        self.safe_emit(SERVER_INITIALIZED_SIGNAL, self.server_name)
 
     async def list_tools(self) -> list[types.Tool]:
         tools: list[types.Tool] = []

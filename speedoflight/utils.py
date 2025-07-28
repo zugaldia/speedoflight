@@ -38,9 +38,9 @@ def safe_json(object: Any) -> str:
             # List of BaseModel objects (e.g. web search results)
             return json.dumps([item.model_dump() for item in object])
         elif isinstance(object, BaseModel):
-            return object.model_dump_json()
+            return object.model_dump_json(indent=2)
         else:
-            return json.dumps(object)
+            return json.dumps(object, indent=2)
     except Exception as e:
         return f"Error serializing object to JSON: {e}"
 

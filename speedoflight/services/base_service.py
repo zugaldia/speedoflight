@@ -12,7 +12,7 @@ class BaseService(GObject.Object):
 
     def safe_emit(self, signal_name: str, *args):
         try:
-            # Services use Python threads to avoid blocking the UI, which
+            # Services use Python asyncio to avoid blocking the UI, which
             # means services should wrap the signal emission in GLib.idle_add
             # to request the main loop to schedule execution in the main thread.
             # https://pygobject.gnome.org/guide/threading.html
