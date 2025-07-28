@@ -11,6 +11,7 @@ from gi.repository import Adw, Gio  # type: ignore  # noqa: E402
 from speedoflight.constants import APPLICATION_ID, LOG_FILE  # noqa: E402
 from speedoflight.services.agent import AgentService  # noqa: E402
 from speedoflight.services.configuration import ConfigurationService  # noqa: E402
+from speedoflight.services.history import HistoryService  # noqa: E402
 from speedoflight.services.llm.llm_service import LlmService  # noqa: E402
 from speedoflight.services.mcp import McpService  # noqa: E402
 from speedoflight.services.orchestrator import OrchestratorService  # noqa: E402
@@ -70,9 +71,13 @@ class SolApplication(Adw.Application):
         # Poor man DI
         self._configuration = ConfigurationService()
         self._llm = LlmService(configuration=self._configuration)
+        self._history = HistoryService()
         self._mcp = McpService(configuration=self._configuration)
         self._agent = AgentService(
-            configuration=self._configuration, llm=self._llm, mcp=self._mcp
+            configuration=self._configuration,
+            llm=self._llm,
+            history=self._history,
+            mcp=self._mcp,
         )
 
         self._orchestrator = OrchestratorService(
@@ -98,6 +103,7 @@ class SolApplication(Adw.Application):
         self._main_view_model.shutdown()
         self._orchestrator.shutdown()
         self._agent.shutdown()
+        self._history.shutdown()
         self._mcp.shutdown()
         self._configuration.shutdown()
         Adw.Application.do_shutdown(self)
