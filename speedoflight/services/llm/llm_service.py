@@ -50,7 +50,7 @@ class LlmService(BaseService):
     async def generate_message(
         self,
         app_messages: list[BaseMessage],
-        tools: dict[str, list[types.Tool]],
+        tools: list[types.Tool],
     ) -> ResponseMessage:
         return await self._client.generate_message(app_messages, tools)
 

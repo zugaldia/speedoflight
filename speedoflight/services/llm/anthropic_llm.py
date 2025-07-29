@@ -53,19 +53,16 @@ class AnthropicLlm(BaseLlmService):
     async def generate_message(
         self,
         app_messages: list[BaseMessage],
-        mcp_tools: dict[str, list[types.Tool]],
+        tools: list[types.Tool],
     ) -> ResponseMessage:
         messages: Iterable[MessageParam] = [self.to_native(msg) for msg in app_messages]
-
-        tools: Iterable[ToolParam] = [
+        native_tools: Iterable[ToolParam] = [
             ToolParam(
-                input_schema=tool.inputSchema,
                 name=tool.name,
-                description=tool.description
-                or f"This is the {tool.name} tool by the {server_name} MCP server.",
+                description=tool.description or f"This is the {tool.name} tool.",
+                input_schema=tool.inputSchema,
             )
-            for server_name, tools_list in mcp_tools.items()
-            for tool in tools_list
+            for tool in tools
         ]
 
         cloud_tools = []
@@ -80,10 +77,11 @@ class AnthropicLlm(BaseLlmService):
 
         result: Message = await self._client.messages.create(
             max_tokens=self._config.max_tokens,
+            system=self._get_system_prompt(),
             temperature=self._config.temperature,
             messages=messages,
             model=self._config.model,
-            tools=tools + cloud_tools,
+            tools=native_tools + cloud_tools,
             tool_choice=ToolChoiceAutoParam(
                 type="auto", disable_parallel_tool_use=True
             ),
