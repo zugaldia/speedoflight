@@ -77,6 +77,15 @@ type = "stdio"
 command = "gnome-mcp-server"
 ```
 
+You can optionally limit which tools from an MCP server are exposed to the LLM using the `enabled_tools` setting. If, for example, you only wanted to use Mapbox for static map generation, you could configure:
+
+```toml
+[mcps.mapbox]
+enabled_tools = ["static_map_image_tool"]
+```
+
+When `enabled_tools` is empty (default), all tools from the server are available. When specified, only the listed tools will be exposed to the LLM. This reduces the number of tools exposed to the LLM, which tends to increase its effectiveness picking up a tool, particularly for smaller local models.
+
 Streamable HTTP servers are also supported:
 
 ```toml
@@ -95,10 +104,10 @@ We currently support:
 
 - **MCP tools**: This is the primary mechanism to extend the tools available to SOL by a user. MCP is a provider agnostic standard which enables integrating with third-party providers and on-device functionality.
 - **Cloud tools**: These are pre-built tools that are provider-specific and executed on the provider's server. They are configured per model and don't require local implementation. Examples include web search tools available from providers like Google, Anthropic, and OpenAI.
+- **Built-in tools**: These are tools defined and implemented by SOL and available together with the other tools above. For example, we include tools that allow SOL to read and write the clipboard content. One possibility is to eventually graduate these built-in tools as their own MCP servers to simplify SOL's architecture and make these tools available to any MCP client.
 
 We currently do not support, but plan to:
 
-- **Built-in tools**: These are tools defined and implemented by SOL and available together with the other tools above. For example, we include tools that allow SOL to read and write the clipboard content. One possibility is to eventually graduate these built-in tools as their own MCP servers to simplify SOL's architecture and make these tools available to any MCP client.
 - **Computer use**: These are also tools that are to some extent provider-specific ([example](https://platform.openai.com/docs/guides/tools-computer-use)), but they do require implementation on SOL's side.
 
 ## Reporting Issues

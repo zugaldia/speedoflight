@@ -50,6 +50,7 @@ class AnthropicConfig(BaseLLMConfig):
 
 class BaseMCPConfig(BaseModel):
     enabled: bool = True
+    enabled_tools: list[str] = []
 
 
 class StdioConfig(BaseMCPConfig):
@@ -76,6 +77,7 @@ class AppConfig(BaseModel):
     llm: LLMProvider = LLMProvider.OLLAMA
     llms: Optional[dict[str, LLMConfig]] = None
     mcps: Optional[dict[str, MCPConfig]] = None
+    max_iterations: int = 10
 
 
 #
