@@ -172,4 +172,4 @@ class BaseServer(GObject.Object):
                     await asyncio.sleep(delay)
                 else:
                     self._logger.error("Max retries reached, failing.")
-                    return None
+                    raise e

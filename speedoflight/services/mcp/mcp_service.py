@@ -1,15 +1,11 @@
 import asyncio
+from typing import Any
 
 from mcp import types
 from pydantic import BaseModel
 
 from speedoflight.constants import SERVER_INITIALIZED_SIGNAL
-from speedoflight.models import (
-    ResponseMessage,
-    StdioConfig,
-    StreamableHttpConfig,
-    ToolInputResponse,
-)
+from speedoflight.models import StdioConfig, StreamableHttpConfig, ToolInputResponse
 from speedoflight.services.base_service import BaseService
 from speedoflight.services.configuration import ConfigurationService
 from speedoflight.services.mcp.base_server import BaseServer
@@ -27,7 +23,9 @@ class McpCallToolResult(BaseModel):
 
     call_id: str
     name: str
-    result: types.CallToolResult
+    content: list[types.ContentBlock]
+    structured_content: dict[str, Any] | None = None
+    is_error: bool = False
 
 
 class McpService(BaseService):
@@ -113,15 +111,32 @@ class McpService(BaseService):
         if capabilities.prompts:
             await self._query_prompts(server)
 
+    def _filter_tools(
+        self, server_name: str, tools: list[types.Tool]
+    ) -> list[types.Tool]:
+        """Filter tools based on enabled_tools configuration."""
+        mcp_config = (
+            self._configuration.config.mcps.get(server_name, None)
+            if self._configuration.config.mcps
+            else None
+        )
+
+        enabled_tools = mcp_config.enabled_tools if mcp_config else None
+        if enabled_tools is None or len(enabled_tools) == 0:
+            return tools
+
+        return [tool for tool in tools if tool.name in enabled_tools]
+
     async def _query_tools(self, server: BaseServer) -> None:
         server_name = server.server_name
         try:
             tools = await server.list_tools()
             if tools:
+                tools = self._filter_tools(server_name, tools)
                 self._tools[server_name] = tools
                 count = len(tools)
                 names = [tool.name for tool in tools]
-                self._logger.info(f"{server_name} has {count} tools: {names}")
+                self._logger.info(f"{server_name} has {count} tools enabled: {names}")
             else:
                 self._logger.info(f"{server_name} has no tools")
         except Exception as e:
@@ -173,23 +188,8 @@ class McpService(BaseService):
         except Exception as e:
             self._logger.error(f"Failed to query prompts for {server_name}: {e}")
 
-    async def call_tool(self, message: ResponseMessage) -> McpCallToolResult | None:
+    async def call_tool(self, tool_input: ToolInputResponse) -> McpCallToolResult:
         try:
-            # This assumes that only one tool use content is present per
-            # message. If there are more than one, they will be ignored.
-            # (See e.g. Anthropic's ToolChoiceAutoParam)
-            tool_input = next(
-                (
-                    content
-                    for content in message.content
-                    if isinstance(content, ToolInputResponse)
-                ),
-                None,
-            )
-            if tool_input is None:
-                self._logger.warning("No tool input content found in message.")
-                return None
-
             # This assumes that there are no overlaps in tool names across
             # servers (which should be the case anyway). If there is, the first
             # tool with the right name will be used.
@@ -199,18 +199,26 @@ class McpService(BaseService):
                         tool_output = await self._servers[server_name].call_tool(
                             tool_input.name, tool_input.arguments
                         )
-                        return (
-                            McpCallToolResult(
-                                call_id=tool_input.call_id,
-                                name=tool_input.name,
-                                result=tool_output,
+                        if tool_output is None:
+                            raise ValueError(
+                                f"Tool {tool_input.name} returned no output."
                             )
-                            if tool_output
-                            else None
+                        return McpCallToolResult(
+                            call_id=tool_input.call_id,
+                            name=tool_input.name,
+                            content=tool_output.content,
+                            structured_content=tool_output.structuredContent,
+                            is_error=tool_output.isError,
                         )
+            raise ValueError(f"Tool {tool_input.name} not found in any MCP server.")
         except Exception as e:
-            self._logger.error(f"Error calling tool: {e}")
-            return None
+            text = f"Error calling tool {tool_input.name}: {e}"
+            return McpCallToolResult(
+                call_id=tool_input.call_id,
+                name=tool_input.name,
+                content=[types.TextContent(type="text", text=text)],
+                is_error=True,
+            )
 
     def shutdown(self):
         # TODO: Shutdown all servers gracefully

@@ -39,10 +39,10 @@ class OllamaLlm(BaseLlmService):
     async def generate_message(
         self,
         app_messages: list[BaseMessage],
-        mcp_tools: dict[str, list[types.Tool]],
+        tools: list[types.Tool],
     ) -> ResponseMessage:
         messages = [self.to_native(msg) for msg in app_messages]
-        tools: Sequence[Mapping[str, Any]] = [
+        native_tools: Sequence[Mapping[str, Any]] = [
             {
                 "type": "function",
                 "function": {
@@ -51,15 +51,16 @@ class OllamaLlm(BaseLlmService):
                     "parameters": tool.inputSchema,
                 },
             }
-            for tools_list in mcp_tools.values()
-            for tool in tools_list
+            for tool in tools
         ]
 
+        # TODO: Add system prompt. See this for an example:
+        # https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/implement-tool-use#tool-use-system-prompt
         result: ChatResponse = await self._client.chat(
             model=self._config.model,
             options=Options(temperature=self._config.temperature),
             messages=messages,
-            tools=tools,
+            tools=native_tools,
         )
 
         # self._logger.info(f"Generated message: {result}")
