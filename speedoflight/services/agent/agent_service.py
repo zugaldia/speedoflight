@@ -62,7 +62,6 @@ class AgentService(BaseService):
         """Set the session ID for this agent and share it with the history service."""
         self._session_id = session_id
         self._history.set_session_id(session_id)
-        self._logger.info(f"Session ID set to: {session_id}")
 
     def shutdown(self):
         pass

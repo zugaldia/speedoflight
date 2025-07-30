@@ -63,7 +63,7 @@ class OllamaLlm(BaseLlmService):
             tools=native_tools,
         )
 
-        # self._logger.info(f"Generated message: {result}")
+        self._logger.debug(f"Generated message: {result}")
         return self.from_native(result)
 
     async def list_supported_models(self):
@@ -80,8 +80,8 @@ class OllamaLlm(BaseLlmService):
     def to_native(self, app_msg: BaseMessage) -> Mapping[str, Any] | Message:
         if isinstance(app_msg, ResponseMessage) and app_msg.raw is not None:
             return Message(
-                role=app_msg.raw.role,
-                content=app_msg.raw.content,
+                role=app_msg.raw.message.role,
+                content=app_msg.raw.message.content,
             )
 
         if app_msg.role == MessageRole.HUMAN:

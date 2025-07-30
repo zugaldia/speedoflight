@@ -87,6 +87,7 @@ class AnthropicLlm(BaseLlmService):
             ),
         )
 
+        self._logger.debug(f"Generated message: {result}")
         return self.from_native(result)
 
     def to_native(self, app_msg: BaseMessage) -> MessageParam:
