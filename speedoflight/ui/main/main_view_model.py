@@ -85,5 +85,9 @@ class MainViewModel(BaseViewModel):
         self.view_state.status_text = "Starting agent."
         self._orchestrator.run_agent(text)
 
+    def clear(self):
+        self._orchestrator.reset_session()
+        self.view_state.status_text = "Messages cleared, new session started."
+
     def shutdown(self):
         pass

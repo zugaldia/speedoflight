@@ -38,7 +38,6 @@ class OrchestratorService(BaseService):
         agent: AgentService,
     ):
         super().__init__(service_name="orchestrator")
-        self._session_id = generate_uuid()
 
         self._agent = agent
         self._agent.connect(AGENT_UPDATE_AI_SIGNAL, self._on_agent_update_ai)
@@ -46,11 +45,14 @@ class OrchestratorService(BaseService):
         self._agent.connect(AGENT_READY_SIGNAL, self._on_agent_ready)
         self._agent.connect(AGENT_RUN_STARTED_SIGNAL, self._on_agent_run_started)
         self._agent.connect(AGENT_RUN_COMPLETED_SIGNAL, self._on_agent_run_completed)
-        self._agent.set_session_id(self._session_id)
-
         self._agent_task: asyncio.Task | None = None
 
+        self.reset_session()
         self._logger.info("Initialized.")
+
+    def reset_session(self):
+        self._session_id = generate_uuid()
+        self._agent.set_session_id(self._session_id)
 
     def run_agent(self, message: str):
         self._logger.info("Running agent.")
