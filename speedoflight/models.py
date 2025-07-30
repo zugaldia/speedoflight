@@ -77,7 +77,7 @@ class AppConfig(BaseModel):
     llm: LLMProvider = LLMProvider.OLLAMA
     llms: Optional[dict[str, LLMConfig]] = None
     mcps: Optional[dict[str, MCPConfig]] = None
-    max_iterations: int = 10
+    max_iterations: int = 25
 
 
 #

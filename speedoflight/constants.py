@@ -4,7 +4,6 @@ APPLICATION_NAME = "Speed of Light"
 CONFIG_FILE = "config.toml"
 LOG_FILE = "speedoflight.log"
 
-DEFAULT_PADDING = 10
 DEFAULT_SPACING = 10
 DEFAULT_MARGIN = 10
 
