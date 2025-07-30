@@ -86,6 +86,12 @@ enabled_tools = ["static_map_image_tool"]
 
 When `enabled_tools` is empty (default), all tools from the server are available. When specified, only the listed tools will be exposed to the LLM. This reduces the number of tools exposed to the LLM, which tends to increase its effectiveness picking up a tool, particularly for smaller local models.
 
+- **`max_iterations`**: Controls the maximum number of LLM iterations allowed in a single conversation turn (defaults to `25`). This is a safety mechanism to prevent infinite loops when the LLM repeatedly invokes tools without reaching a conclusion. This protection is also helpful to control API costs when using cloud providers.
+
+```toml
+max_iterations = 25  # Adjust based on your needs and cost tolerance
+```
+
 Streamable HTTP servers are also supported:
 
 ```toml
