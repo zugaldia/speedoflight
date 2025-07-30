@@ -141,6 +141,7 @@ class ChatBaseWidget(Gtk.Box):
             picture.set_pixbuf(pixbuf)
             picture.set_content_fit(Gtk.ContentFit.SCALE_DOWN)
             picture.set_can_shrink(True)
+            # TODO: Resize if larger than the window width
             picture.set_size_request(pixbuf.get_width(), pixbuf.get_height())
             picture.set_margin_top(DEFAULT_MARGIN)
             picture.set_margin_bottom(DEFAULT_MARGIN)
