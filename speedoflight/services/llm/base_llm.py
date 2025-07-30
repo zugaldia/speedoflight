@@ -16,6 +16,7 @@ class BaseLlmService(BaseService):
 
     def _get_system_prompt(self) -> str:
         """Get the system/developer prompt for the LLM."""
+        # TODO: Use Python's platform module to get relevant system information
         today_date = datetime.now().strftime("%B %d, %Y")
         return SYSTEM_PROMPT.format(
             APPLICATION_NAME=APPLICATION_NAME, TODAY_DATE=today_date

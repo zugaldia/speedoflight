@@ -41,7 +41,12 @@ class OllamaLlm(BaseLlmService):
         app_messages: list[BaseMessage],
         tools: list[types.Tool],
     ) -> ResponseMessage:
+        # TODO: Does the system prompt need to include tools information in Ollama?
+        # If so, see this for inspiration:
+        # https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/implement-tool-use#tool-use-system-prompt
+        system_message = Message(role="system", content=self._get_system_prompt())
         messages = [self.to_native(msg) for msg in app_messages]
+
         native_tools: Sequence[Mapping[str, Any]] = [
             {
                 "type": "function",
@@ -54,12 +59,10 @@ class OllamaLlm(BaseLlmService):
             for tool in tools
         ]
 
-        # TODO: Add system prompt. See this for an example:
-        # https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/implement-tool-use#tool-use-system-prompt
         result: ChatResponse = await self._client.chat(
             model=self._config.model,
             options=Options(temperature=self._config.temperature),
-            messages=messages,
+            messages=[system_message] + messages,
             tools=native_tools,
         )
 
