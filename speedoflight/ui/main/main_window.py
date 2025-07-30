@@ -57,6 +57,11 @@ class MainWindow(Adw.ApplicationWindow):
 
         header_bar = Adw.HeaderBar()
         header_bar.set_title_widget(Gtk.Label(label=APPLICATION_NAME))
+
+        clear_button = Gtk.Button(label="Clear")
+        clear_button.connect("clicked", self._on_clear_clicked)
+        header_bar.pack_end(clear_button)
+
         toolbar_view.add_top_bar(header_bar)
 
         self._chat_widget = ChatWidget()
@@ -65,7 +70,7 @@ class MainWindow(Adw.ApplicationWindow):
         scrolled_window.set_child(self._chat_widget)
         scrolled_window.set_vexpand(True)
         scrolled_window.set_hexpand(True)
-        scrolled_window.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         toolbar_view.set_content(scrolled_window)
 
         bottom_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -89,6 +94,10 @@ class MainWindow(Adw.ApplicationWindow):
                 css_provider,
                 Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
             )
+
+    def _on_clear_clicked(self, button):
+        self._chat_widget.clear_messages()
+        self._view_model.clear()
 
     def _on_send_message(self, widget, text):
         human_message = RequestMessage(
