@@ -49,6 +49,13 @@ class MainViewModel(BaseViewModel):
         self._orchestrator.connect(AGENT_UPDATE_AI_SIGNAL, self._on_agent_update_ai)
         self._orchestrator.connect(AGENT_UPDATE_TOOL_SIGNAL, self._on_agent_update_tool)
 
+        # Initialize computer use setting from configuration. In the future,
+        # we might want to expose a more generic way to expose settings
+        # changes using gsettings.
+        self.view_state.enable_computer_use = (
+            self._orchestrator.is_computer_use_enabled()
+        )
+
     def _on_agent_ready(self, _: OrchestratorService):
         self.view_state.status_text = "Ready."
         self.view_state.agent_state = AgentState.READY

@@ -44,6 +44,7 @@ class ChatWidget(Gtk.ListView):
         self, factory: Gtk.SignalListItemFactory, list_item: Gtk.ListItem
     ) -> None:
         message = list_item.get_item()
+
         if message is None or not isinstance(message, GBaseMessage):
             self._logger.warning("List item has no valid message data.")
             return

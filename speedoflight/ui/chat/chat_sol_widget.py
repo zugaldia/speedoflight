@@ -14,7 +14,8 @@ class ChatSolWidget(ChatBaseWidget):
                 title="Application error",
                 subtitle=sol_message.id,
                 content=sol_message.message,
-                class_name="monospace-content",
+                class_name="monospace",
                 icon_name="dialog-error-symbolic",
                 expanded=True,
+                is_error=True,
             )

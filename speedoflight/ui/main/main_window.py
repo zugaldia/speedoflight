@@ -1,6 +1,6 @@
 import logging
 
-from gi.repository import Adw, Gdk, GObject, Gtk  # type: ignore
+from gi.repository import Adw, Gdk, GLib, GObject, Gtk  # type: ignore
 
 from speedoflight.constants import (
     AGENT_UPDATE_AI_SIGNAL,
@@ -31,6 +31,8 @@ class MainWindow(Adw.ApplicationWindow):
     ) -> None:
         super().__init__(application=application)
         self._logger = logging.getLogger(__name__)
+        self._pulse_timeout_id = None
+
         self.set_title(APPLICATION_NAME)
         self.set_default_size(1024, 768)
         self._load_css()
@@ -52,6 +54,13 @@ class MainWindow(Adw.ApplicationWindow):
             "notify::activity-mode", self._on_activity_mode_changed
         )
 
+        # This style class is typically used to indicate unstable or nightly
+        # applications. We use it to signal that computer use is enabled,
+        # which not only is an experimental feature, is a potentially
+        # destructive operation.
+        if self._view_model.view_state.enable_computer_use:
+            self.get_style_context().add_class("devel")
+
         toolbar_view = Adw.ToolbarView()
         self.set_content(toolbar_view)
 
@@ -60,6 +69,7 @@ class MainWindow(Adw.ApplicationWindow):
 
         clear_button = Gtk.Button(label="Clear")
         clear_button.connect("clicked", self._on_clear_clicked)
+        clear_button.get_style_context().add_class("destructive-action")
         header_bar.pack_end(clear_button)
 
         toolbar_view.add_top_bar(header_bar)
@@ -149,4 +159,20 @@ class MainWindow(Adw.ApplicationWindow):
         view_state: MainViewState,
         param_spec: GObject.ParamSpec,
     ):
-        self.status_widget.set_activity_mode(view_state.activity_mode)
+        self.set_activity_mode(view_state.activity_mode)
+
+    def set_activity_mode(self, active: bool) -> None:
+        if active:
+            if self._pulse_timeout_id is None:
+                self._pulse_timeout_id = GLib.timeout_add(150, self._pulse_widgets)
+        else:
+            if self._pulse_timeout_id is not None:
+                GLib.source_remove(self._pulse_timeout_id)
+                self._pulse_timeout_id = None
+            self.status_widget.set_fraction(0.0)
+            self.input_widget.set_fraction(0.0)
+
+    def _pulse_widgets(self):
+        self.status_widget.pulse_progress_bar()
+        self.input_widget.pulse_entry()
+        return True

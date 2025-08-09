@@ -1,4 +1,4 @@
-from gi.repository import GLib, Gtk  # type: ignore
+from gi.repository import Gtk  # type: ignore
 
 from speedoflight.constants import DEFAULT_MARGIN, DEFAULT_SPACING
 
@@ -24,21 +24,12 @@ class StatusWidget(Gtk.Box):
         self._progress_bar.set_show_text(False)
         self.append(self._progress_bar)
 
-        self._pulse_timeout_id = None
-
     def set_status(self, status: str) -> None:
         self._status_label.set_text(status)
 
-    def set_activity_mode(self, active: bool) -> None:
-        if active:
-            if self._pulse_timeout_id is None:
-                self._pulse_timeout_id = GLib.timeout_add(150, self._pulse_progress_bar)
-        else:
-            if self._pulse_timeout_id is not None:
-                GLib.source_remove(self._pulse_timeout_id)
-                self._pulse_timeout_id = None
-            self._progress_bar.set_fraction(0.0)
-
-    def _pulse_progress_bar(self) -> bool:
+    def pulse_progress_bar(self) -> bool:
         self._progress_bar.pulse()
         return True
+
+    def set_fraction(self, fraction: float) -> None:
+        self._progress_bar.set_fraction(fraction)

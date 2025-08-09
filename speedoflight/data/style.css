@@ -1,13 +1,11 @@
 /* Contains the base styles for the application */
 
-/* .human-message {
-} */
-
-.markdown-message {
+.sol-markdown-message {
     padding: 10px;
     border-radius: 10px;
 }
 
-.monospace-content {
-    font-family: "Ubuntu Mono", monospace;
+.sol-thinking {
+    font-style: italic;
+    opacity: 0.75;
 }

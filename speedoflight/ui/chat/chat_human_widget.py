@@ -19,6 +19,6 @@ class ChatHumanWidget(ChatBaseWidget):
 
         for block in content:
             if isinstance(block, TextBlockRequest):
-                self._add_plain_text(block.text, "human-message")
+                self._add_plain_text(block.text, "document")
             else:
                 self._logger.warning(f"Unsupported human block type: {type(block)}")
