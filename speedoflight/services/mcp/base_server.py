@@ -4,12 +4,24 @@ from abc import abstractmethod
 from contextlib import AsyncExitStack
 from typing import Any
 
+import mcp.types as types
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 from gi.repository import GLib, GObject  # type: ignore
 from mcp import ClientSession, Implementation, ServerCapabilities, types
+from mcp.client.session import (
+    _default_elicitation_callback,
+    _default_list_roots_callback,
+    _default_logging_callback,
+    _default_message_handler,
+    _default_sampling_callback,
+)
+from mcp.shared.context import RequestContext
 from mcp.shared.message import SessionMessage
+from mcp.shared.session import RequestResponder
 
-from speedoflight.constants import SERVER_INITIALIZED_SIGNAL
+from speedoflight.constants import APPLICATION_NAME, SERVER_INITIALIZED_SIGNAL
+
+CLIENT_INFO = types.Implementation(name=APPLICATION_NAME, version="0.1.0")
 
 
 class BaseServer(GObject.Object):
@@ -73,7 +85,17 @@ class BaseServer(GObject.Object):
         write_stream: MemoryObjectSendStream[SessionMessage],
     ):
         session = await self._exit_stack.enter_async_context(
-            ClientSession(read_stream, write_stream)
+            ClientSession(
+                read_stream=read_stream,
+                write_stream=write_stream,
+                read_timeout_seconds=None,  # Default
+                sampling_callback=self._on_sampling_callback,
+                elicitation_callback=self._on_elicitation_callback,
+                list_roots_callback=self._on_list_roots_callback,
+                logging_callback=self._on_logging_callback,
+                message_handler=self._on_message_handler,
+                client_info=CLIENT_INFO,
+            )
         )
 
         result: types.InitializeResult = await session.initialize()
@@ -173,3 +195,60 @@ class BaseServer(GObject.Object):
                 else:
                     self._logger.error("Max retries reached, failing.")
                     raise e
+
+    #
+    # Callbacks
+    #
+    # TODO: Find real MCP servers that support these features (besides test
+    # MCPs like `everything`) and implement them.
+    #
+    # https://modelcontextprotocol.io/docs/learn/client-concepts
+    #
+
+    async def _on_sampling_callback(
+        self,
+        context: RequestContext["ClientSession", Any],
+        params: types.CreateMessageRequestParams,
+    ) -> types.CreateMessageResult | types.ErrorData:
+        """Sampling allows servers to request language model completions
+        through the client, enabling agentic behaviors while maintaining
+        security and user control."""
+        self._logger.warning(f"Sampling: context ({context}) and params ({params}).")
+        return await _default_sampling_callback(context, params)
+
+    async def _on_elicitation_callback(
+        self,
+        context: RequestContext["ClientSession", Any],
+        params: types.ElicitRequestParams,
+    ) -> types.ElicitResult | types.ErrorData:
+        """Elicitation enables servers to request specific information from
+        users during interactions, creating more dynamic and responsive workflows."""
+        self._logger.warning(f"Elicitation: context ({context}) and params ({params}).")
+        return await _default_elicitation_callback(context, params)
+
+    async def _on_list_roots_callback(
+        self,
+        context: RequestContext["ClientSession", Any],
+    ) -> types.ListRootsResult | types.ErrorData:
+        """Roots define filesystem boundaries for server operations, allowing
+        clients to specify which directories servers should focus on."""
+        self._logger.warning(f"List roots: context ({context}).")
+        return await _default_list_roots_callback(context)
+
+    async def _on_logging_callback(
+        self,
+        params: types.LoggingMessageNotificationParams,
+    ) -> None:
+        self._logger.warning(f"Logging: params ({params}).")
+        await _default_logging_callback(params)
+
+    async def _on_message_handler(
+        self,
+        message: (
+            RequestResponder[types.ServerRequest, types.ClientResult]
+            | types.ServerNotification
+            | Exception
+        ),
+    ) -> None:
+        self._logger.warning(f"Message handler: message ({message})")
+        await _default_message_handler(message)

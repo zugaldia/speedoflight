@@ -79,7 +79,7 @@ class AgentService(BaseService):
         self.safe_emit(AGENT_READY_SIGNAL)
 
     async def run(self, request: AgentRequest):
-        self._logger.info(f"Running agent with request: {request}")
+        self._logger.info(f"Running agent with session ID: {request.session_id}")
         self._current_iterations = 0
         self.safe_emit(AGENT_RUN_STARTED_SIGNAL)
         self._add_message(request.message)

@@ -11,6 +11,8 @@ from speedoflight.constants import (
 )
 from speedoflight.models import (
     AgentRequest,
+    AnthropicConfig,
+    LLMProvider,
     MessageRole,
     RequestMessage,
     TextBlockRequest,
@@ -39,6 +41,7 @@ class OrchestratorService(BaseService):
     ):
         super().__init__(service_name="orchestrator")
 
+        self._configuration = configuration
         self._agent = agent
         self._agent.connect(AGENT_UPDATE_AI_SIGNAL, self._on_agent_update_ai)
         self._agent.connect(AGENT_UPDATE_TOOL_SIGNAL, self._on_agent_update_tool)
@@ -97,6 +100,18 @@ class OrchestratorService(BaseService):
     def _on_agent_run_completed(self, agent_service, encoded_message: str):
         self._logger.info("Agent run completed.")
         self.safe_emit(AGENT_RUN_COMPLETED_SIGNAL, encoded_message)
+
+    def is_computer_use_enabled(self) -> bool:
+        if (
+            self._configuration.config.llm != LLMProvider.ANTHROPIC
+            or not self._configuration.config.llms
+        ):
+            return False
+
+        llm_config = self._configuration.config.llms.get(LLMProvider.ANTHROPIC.value)
+        if not llm_config or not isinstance(llm_config, AnthropicConfig):
+            return False
+        return llm_config.enable_computer_use
 
     def shutdown(self):
         self._logger.info("Shutting down.")
