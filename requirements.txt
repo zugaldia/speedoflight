@@ -1,5 +1,6 @@
 # Check updates with `pip list --outdated`
+anthropic==0.60.0
+colorlog==6.9.0
+mcp==1.12.3
+ollama==0.5.2
 PyGObject==3.52.3
-mcp==1.12.2
-anthropic==0.59.0
-ollama==0.5.1

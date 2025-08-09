@@ -2,7 +2,6 @@ import logging
 
 from gi.repository import Gio, GLib, Gtk  # type: ignore
 
-from speedoflight.constants import DEFAULT_MARGIN
 from speedoflight.models import GBaseMessage, MessageRole
 from speedoflight.ui.chat.chat_ai_widget import ChatAiWidget
 from speedoflight.ui.chat.chat_human_widget import ChatHumanWidget
@@ -39,36 +38,42 @@ class ChatWidget(Gtk.ListView):
     def _on_factory_setup(
         self, factory: Gtk.SignalListItemFactory, list_item: Gtk.ListItem
     ) -> None:
-        label = Gtk.Label(label="Loading...")
-        label.set_wrap(True)
-        label.set_xalign(0.0)
-        label.set_selectable(True)
-        label.set_margin_top(DEFAULT_MARGIN)
-        label.set_margin_bottom(DEFAULT_MARGIN)
-        label.set_margin_start(DEFAULT_MARGIN)
-        label.set_margin_end(DEFAULT_MARGIN)
-        list_item.set_child(label)
+        list_item.set_child(Gtk.Label(label="Loading..."))
 
     def _on_factory_bind(
         self, factory: Gtk.SignalListItemFactory, list_item: Gtk.ListItem
     ) -> None:
         message = list_item.get_item()
+
         if message is None or not isinstance(message, GBaseMessage):
             self._logger.warning("List item has no valid message data.")
             return
 
+        # The message widget
+        message_widget = None
         if message.data.role == MessageRole.SOL:
-            list_item.set_child(ChatSolWidget(message))
+            message_widget = ChatSolWidget(message)
         elif message.data.role == MessageRole.HUMAN:
-            list_item.set_child(ChatHumanWidget(message))
+            message_widget = ChatHumanWidget(message)
         elif message.data.role == MessageRole.AI:
-            list_item.set_child(ChatAiWidget(message))
+            message_widget = ChatAiWidget(message)
         elif message.data.role == MessageRole.TOOL:
-            list_item.set_child(ChatToolWidget(message))
+            message_widget = ChatToolWidget(message)
         else:
-            list_item.set_child(
-                Gtk.Label(label=f"Unable to render message ({message.data.role}).")
-            )
+            self._logger.warning(f"Unable to render message ({message.data.role}).")
+            return
+
+        # Wrap it in a revealer
+        revealer = Gtk.Revealer()
+        revealer.set_reveal_child(False)
+        revealer.set_transition_type(Gtk.RevealerTransitionType.CROSSFADE)
+        revealer.set_transition_duration(500)
+        revealer.set_child(message_widget)
+        list_item.set_child(revealer)
+        GLib.idle_add(revealer.set_reveal_child, True)
 
     def add_message(self, message: GBaseMessage):
         self.store.append(message)
+
+    def clear_messages(self):
+        self.store.remove_all()

@@ -9,3 +9,4 @@ class MainViewState(BaseViewState):
     agent_state = GObject.Property(type=AgentState, default=AgentState.INITIALIZING)
     input_enabled = GObject.Property(type=bool, default=False)
     activity_mode = GObject.Property(type=bool, default=False)
+    enable_computer_use = GObject.Property(type=bool, default=False)

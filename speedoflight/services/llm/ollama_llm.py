@@ -19,6 +19,7 @@ from speedoflight.models import (
     StopReason,
     TextBlockRequest,
     TextBlockResponse,
+    ThinkingBlockResponse,
     ToolEnvironment,
     ToolImageOutputRequest,
     ToolInputResponse,
@@ -35,12 +36,14 @@ class OllamaLlm(BaseLlmService):
         self._config = config
         self._logger.info(f"Using Ollama config: {config}")
         self._client = AsyncClient(host=config.host)
+        # asyncio.create_task(self.list_compatible_models())
 
     async def generate_message(
         self,
         app_messages: list[BaseMessage],
         tools: list[types.Tool],
     ) -> ResponseMessage:
+        system_message = Message(role="system", content=self._get_system_prompt())
         messages = [self.to_native(msg) for msg in app_messages]
         native_tools: Sequence[Mapping[str, Any]] = [
             {
@@ -54,34 +57,36 @@ class OllamaLlm(BaseLlmService):
             for tool in tools
         ]
 
-        # TODO: Add system prompt. See this for an example:
-        # https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/implement-tool-use#tool-use-system-prompt
         result: ChatResponse = await self._client.chat(
             model=self._config.model,
             options=Options(temperature=self._config.temperature),
-            messages=messages,
+            messages=[system_message] + messages,
             tools=native_tools,
+            think=True,
         )
 
-        # self._logger.info(f"Generated message: {result}")
+        self._logger.debug(f"Generated message: {result}")
         return self.from_native(result)
 
-    async def list_supported_models(self):
+    async def list_compatible_models(self):
         models: ListResponse = await self._client.list()
         for model in models.models:
             model_name = model.model
             if not model_name:
                 continue
             show: ShowResponse = await self._client.show(model_name)
-            has_tools = "tools" in show.capabilities if show.capabilities else False
-            if has_tools:
-                self._logger.info(f"- Available model: {model_name} (supports tools)")
+            if not show.capabilities:
+                continue
+            has_tools = "tools" in show.capabilities
+            has_thinking = "thinking" in show.capabilities
+            if has_tools and has_thinking:
+                self._logger.info(f"- Compatible model: {model_name}")
 
     def to_native(self, app_msg: BaseMessage) -> Mapping[str, Any] | Message:
         if isinstance(app_msg, ResponseMessage) and app_msg.raw is not None:
             return Message(
-                role=app_msg.raw.role,
-                content=app_msg.raw.content,
+                role=app_msg.raw.message.role,
+                content=app_msg.raw.message.content,
             )
 
         if app_msg.role == MessageRole.HUMAN:
@@ -126,6 +131,8 @@ class OllamaLlm(BaseLlmService):
             self._logger.warning("Message should be done, we are not streaming.")
 
         content = []
+        if native_msg.message.thinking:
+            content.append(ThinkingBlockResponse(text=native_msg.message.thinking))
         if native_msg.message.content:
             content.append(TextBlockResponse(text=native_msg.message.content))
         if native_msg.message.tool_calls:

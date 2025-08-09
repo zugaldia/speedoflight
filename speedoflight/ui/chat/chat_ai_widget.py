@@ -3,6 +3,7 @@ from speedoflight.models import (
     MessageRole,
     ResponseMessage,
     TextBlockResponse,
+    ThinkingBlockResponse,
     ToolInputResponse,
     ToolTextOutputResponse,
 )
@@ -25,24 +26,36 @@ class ChatAiWidget(ChatBaseWidget):
                 # TODO: Improve the visualization of text blocks in the
                 # context of citations (e.g. web search results)
                 self._add_markdown_text(block.text)
+            elif isinstance(block, ThinkingBlockResponse):
+                self._add_expandable_text(
+                    title="Thinking",
+                    subtitle="Expand for details",
+                    content=block.text,
+                    class_name="sol-thinking",
+                    icon_name="checkbox-checked-symbolic",
+                    expanded=False,
+                    is_error=False,
+                )
             elif isinstance(block, ToolInputResponse):
                 # TODO: Change icon based on server vs local tool
                 self._add_expandable_text(
                     title=f"Tool Request: {block.name}",
                     subtitle=f"Call ID: {block.call_id}",
                     content=safe_json(block.arguments),
-                    class_name="monospace-content",
+                    class_name="monospace",
                     icon_name="network-transmit",
                     expanded=False,
+                    is_error=False,
                 )
             elif isinstance(block, ToolTextOutputResponse):
                 self._add_expandable_text(
                     title=f"Tool Response: {block.name}",
                     subtitle=f"Call ID: {block.call_id}",
                     content=block.text,
-                    class_name="monospace-content",
-                    icon_name=self._get_icon_name("network-receive", block.is_error),
+                    class_name="monospace",
+                    icon_name="network-receive",
                     expanded=block.is_error,
+                    is_error=block.is_error,
                 )
             else:
                 self._logger.warning(f"Unsupported AI block type: {type(block)}")

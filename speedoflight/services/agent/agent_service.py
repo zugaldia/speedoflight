@@ -62,7 +62,6 @@ class AgentService(BaseService):
         """Set the session ID for this agent and share it with the history service."""
         self._session_id = session_id
         self._history.set_session_id(session_id)
-        self._logger.info(f"Session ID set to: {session_id}")
 
     def shutdown(self):
         pass
@@ -80,7 +79,7 @@ class AgentService(BaseService):
         self.safe_emit(AGENT_READY_SIGNAL)
 
     async def run(self, request: AgentRequest):
-        self._logger.info(f"Running agent with request: {request}")
+        self._logger.info(f"Running agent with session ID: {request.session_id}")
         self._current_iterations = 0
         self.safe_emit(AGENT_RUN_STARTED_SIGNAL)
         self._add_message(request.message)

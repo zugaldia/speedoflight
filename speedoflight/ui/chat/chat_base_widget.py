@@ -5,6 +5,7 @@ from typing import Optional
 from gi.repository import Adw, GdkPixbuf, Gtk, GtkSource, Pango  # type: ignore
 
 from speedoflight.constants import DEFAULT_MARGIN
+from speedoflight.utils import is_empty
 
 _markdown_language = None
 _markdown_style_scheme = None
@@ -36,6 +37,11 @@ class ChatBaseWidget(Gtk.Box):
         self.set_margin_start(DEFAULT_MARGIN)
         self.set_margin_end(DEFAULT_MARGIN)
 
+        # The .linked style class can be applied to a GtkBox to make its
+        # children appear as a single group. The box must have no spacing.
+        self.set_spacing(0)
+        self.get_style_context().add_class("linked")
+
     def _get_default_label(self) -> Gtk.Label:
         label = Gtk.Label()
         label.set_wrap(True)
@@ -43,9 +49,6 @@ class ChatBaseWidget(Gtk.Box):
         label.set_xalign(0.0)
         label.set_selectable(True)
         return label
-
-    def _get_icon_name(self, icon_name: str, is_error: bool = False) -> str:
-        return "dialog-error-symbolic" if is_error else icon_name
 
     def _add_plain_text(self, text: str, class_name: str) -> None:
         label = self._get_default_label()
@@ -67,7 +70,7 @@ class ChatBaseWidget(Gtk.Box):
         view.set_editable(False)
         view.set_cursor_visible(False)
         view.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
-        view.get_style_context().add_class("markdown-message")
+        view.get_style_context().add_class("sol-markdown-message")
         self.append(view)
 
     def _add_expandable_text(
@@ -78,11 +81,15 @@ class ChatBaseWidget(Gtk.Box):
         class_name: str,
         icon_name: str,
         expanded: bool = False,
+        is_error: bool = False,
     ) -> None:
         row = Adw.ExpanderRow()
         row.set_title(title)
-        row.set_subtitle(subtitle)
+        if not is_empty(subtitle):
+            row.set_subtitle(subtitle)
         row.set_expanded(expanded)
+        if is_error:
+            row.get_style_context().add_class("error")
 
         icon = Gtk.Image()
         icon.set_from_icon_name(icon_name)
@@ -141,11 +148,14 @@ class ChatBaseWidget(Gtk.Box):
             picture.set_pixbuf(pixbuf)
             picture.set_content_fit(Gtk.ContentFit.SCALE_DOWN)
             picture.set_can_shrink(True)
-            picture.set_size_request(pixbuf.get_width(), pixbuf.get_height())
+            picture.set_halign(Gtk.Align.CENTER)
             picture.set_margin_top(DEFAULT_MARGIN)
             picture.set_margin_bottom(DEFAULT_MARGIN)
             picture.set_margin_start(DEFAULT_MARGIN)
             picture.set_margin_end(DEFAULT_MARGIN)
+            max_width = min(pixbuf.get_width(), 800)  # TODO: Make this dynamic
+            max_height = int(pixbuf.get_height() * (max_width / pixbuf.get_width()))
+            picture.set_size_request(max_width, max_height)
             row.add_row(picture)
         else:
             label = self._get_default_label()

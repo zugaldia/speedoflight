@@ -12,7 +12,10 @@ You can extend its functionality using the [Model Context Protocol](https://mode
 - 🏠 Support for both local (default) and cloud LLM providers
 - 🔧 Extensible via MCP, supports both STDIO and Streamable HTTP servers
 - 🐧 Built-in tools that integrate with the Linux desktop (e.g., clipboard access)
+- 🖱️ Computer use capabilities for desktop automation (screenshot, mouse, keyboard control)
 - 🎨 Developed with GNOME Adwaita for a modern look and compatibility with any desktop environment
+
+> ⚠️ **Warning**: Computer use is an experimental feature that is disabled by default and directly controls your actual desktop with real mouse clicks and keyboard input, not in a sandboxed environment.
 
 ## Launch the app
 
@@ -56,7 +59,9 @@ env = {"ENV_VAR" = "value"}
 
 - **`[llms.<provider>]`**: Provider-specific configuration sections:
   - For Ollama: `model` specifies the model name (e.g., `"mistral-small:latest"`)
-  - For Anthropic: `model` and `api_key` (setting an API key is required), and optionally `enable_web_search` (defaults to `false`) to give Claude direct access to real-time web content with automatic source citations
+  - For Anthropic: `model` and `api_key` (setting an API key is required), and optionally:
+    - `enable_web_search` (defaults to `false`) to give Claude direct access to real-time web content with automatic source citations
+    - `enable_computer_use` (defaults to `false`) to enable desktop automation capabilities
   - Additional providers coming soon.
 
 - **`[mcps.<server>]`**: Configuration for MCP servers. This allows extending SOL with additional tools. For example, to add the [Mapbox MCP](https://github.com/mapbox/mcp-server) pictured above:
@@ -86,6 +91,14 @@ enabled_tools = ["static_map_image_tool"]
 
 When `enabled_tools` is empty (default), all tools from the server are available. When specified, only the listed tools will be exposed to the LLM. This reduces the number of tools exposed to the LLM, which tends to increase its effectiveness picking up a tool, particularly for smaller local models.
 
+- **`max_iterations`**: Controls the maximum number of LLM iterations allowed in a single conversation turn (defaults to `25`). This is a safety mechanism to prevent infinite loops when the LLM repeatedly invokes tools without reaching a conclusion. This protection is also helpful to control API costs when using cloud providers.
+
+```toml
+max_iterations = 25  # Adjust based on your needs and cost tolerance
+```
+
+- **`target_monitor`** (optional): For multi-monitor setups, specifies which monitor to use for screenshots and coordinate mapping (e.g., `"DP-6"`). If not set, the first monitor will be used. Run SOL once to see available monitor IDs in the logs.
+
 Streamable HTTP servers are also supported:
 
 ```toml
@@ -98,17 +111,14 @@ Note that MCP servers are optional. SOL can work with no servers configured, in 
 
 ## Extending the app
 
-To extend SOL's capabilities, you need to make more "tools" available to it. In the current context of LLMs, tools can have different origins and implementations, described below.
+To extend SOL's capabilities, you need to make more "tools" available to the app. In the current context of LLMs, tools can have different origins and implementations described below.
 
 We currently support:
 
 - **MCP tools**: This is the primary mechanism to extend the tools available to SOL by a user. MCP is a provider agnostic standard which enables integrating with third-party providers and on-device functionality.
 - **Cloud tools**: These are pre-built tools that are provider-specific and executed on the provider's server. They are configured per model and don't require local implementation. Examples include web search tools available from providers like Google, Anthropic, and OpenAI.
 - **Built-in tools**: These are tools defined and implemented by SOL and available together with the other tools above. For example, we include tools that allow SOL to read and write the clipboard content. One possibility is to eventually graduate these built-in tools as their own MCP servers to simplify SOL's architecture and make these tools available to any MCP client.
-
-We currently do not support, but plan to:
-
-- **Computer use**: These are also tools that are to some extent provider-specific ([example](https://platform.openai.com/docs/guides/tools-computer-use)), but they do require implementation on SOL's side.
+- **Computer use**: Desktop automation capabilities that allow the AI to take screenshots, move the mouse, click, type, and interact with your desktop. Currently supported with Anthropic models when `enable_computer_use` is configured. These tools require `xdotool` to be installed on your system.
 
 ## Reporting Issues
 

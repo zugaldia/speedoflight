@@ -7,18 +7,22 @@ from mcp import types
 from speedoflight.constants import APPLICATION_NAME
 from speedoflight.models import BaseMessage, ResponseMessage
 from speedoflight.services.base_service import BaseService
-from speedoflight.services.llm.prompts import SYSTEM_PROMPT
+from speedoflight.services.llm.prompts import COMPUTER_USE_PROMPT, SYSTEM_PROMPT
 
 
 class BaseLlmService(BaseService):
     def __init__(self, service_name: str):
         super().__init__(service_name=service_name)
 
-    def _get_system_prompt(self) -> str:
+    def _get_system_prompt(self, computer_use: bool = False) -> str:
         """Get the system/developer prompt for the LLM."""
+        # TODO: Use Python's platform module to get relevant system information?
         today_date = datetime.now().strftime("%B %d, %Y")
+        computer_use_prompt = COMPUTER_USE_PROMPT if computer_use else ""
         return SYSTEM_PROMPT.format(
-            APPLICATION_NAME=APPLICATION_NAME, TODAY_DATE=today_date
+            APPLICATION_NAME=APPLICATION_NAME,
+            TODAY_DATE=today_date,
+            COMPUTER_USE_PROMPT=computer_use_prompt,
         )
 
     @abstractmethod

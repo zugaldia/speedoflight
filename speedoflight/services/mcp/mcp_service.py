@@ -210,6 +210,8 @@ class McpService(BaseService):
                             structured_content=tool_output.structuredContent,
                             is_error=tool_output.isError,
                         )
+            # TODO: This message could be more helpful if it listed the available tools.
+            # We could even use difflib to find close names in case of misspelling.
             raise ValueError(f"Tool {tool_input.name} not found in any MCP server.")
         except Exception as e:
             text = f"Error calling tool {tool_input.name}: {e}"

@@ -23,13 +23,14 @@ class HistoryService(BaseService):
     def set_session_id(self, session_id: str):
         """Set the session ID for this history service."""
         self._session_id = session_id
+        self._messages = []
 
         # Set up paths but don't create directories yet
         date_folder = datetime.now().strftime("%Y%m%d")
         self._session_dir = get_data_path() / "sessions" / date_folder / session_id
         self._messages_file = self._session_dir / "messages.jsonl"
         self._directory_created = False
-        self._logger.info(f"Session ID set to: {session_id}")
+        self._logger.info(f"Messages cleared, session ID set to: {session_id}")
 
     def add_message(self, message: BaseMessage):
         """Add a message to the conversation history."""

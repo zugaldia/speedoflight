@@ -1,10 +1,13 @@
 import logging
 
+import colorlog
 import gi
 
-gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
+gi.require_version("DBus", "1.0")
+gi.require_version("Gtk", "4.0")
 gi.require_version("GtkSource", "5")
+
 
 from gi.repository import Adw, Gio  # type: ignore  # noqa: E402
 
@@ -37,8 +40,10 @@ class SolApplication(Adw.Application):
         root_logger.setLevel(logging.DEBUG)
         root_logger.handlers.clear()
 
-        # Console formatter - simpler for interactive use
-        console_formatter = logging.Formatter(fmt="%(levelname)s %(name)s: %(message)s")
+        # Console formatter with colors - simpler for interactive use
+        console_formatter = colorlog.ColoredFormatter(
+            fmt="%(log_color)s%(levelname)s%(reset)s %(name)s: %(message)s"
+        )
 
         # File formatter - more detailed for LLM debugging/troubleshooting
         file_formatter = logging.Formatter(
@@ -47,7 +52,7 @@ class SolApplication(Adw.Application):
         )
 
         # Console handler
-        console_handler = logging.StreamHandler()
+        console_handler = colorlog.StreamHandler()
         console_handler.setLevel(logging.INFO)
         console_handler.setFormatter(console_formatter)
         root_logger.addHandler(console_handler)
@@ -63,7 +68,7 @@ class SolApplication(Adw.Application):
     def do_startup(self):
         Adw.Application.do_startup(self)
         self._logger.info("Starting up.")
-        self._create_action("quit", self.quit, ["<primary>q"])
+        self._create_action("quit", self._on_quit_action, ["<primary>q"])
 
         # Currently, the stylesheet only supports dark mode
         style_manager = Adw.StyleManager.get_default()
@@ -71,8 +76,8 @@ class SolApplication(Adw.Application):
 
         # Poor man DI
         self._configuration = ConfigurationService()
-        self._desktop = DesktopService()
-        self._llm = LlmService(configuration=self._configuration)
+        self._desktop = DesktopService(configuration=self._configuration)
+        self._llm = LlmService(configuration=self._configuration, desktop=self._desktop)
         self._history = HistoryService()
         self._mcp = McpService(configuration=self._configuration)
         self._agent = AgentService(
@@ -100,6 +105,9 @@ class SolApplication(Adw.Application):
     def do_activate(self):
         self._logger.info("Activating.")
         self._main_window.present()
+
+    def _on_quit_action(self, action, param):
+        self.quit()
 
     def do_shutdown(self):
         self._logger.info("Shutting down.")
