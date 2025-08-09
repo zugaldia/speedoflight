@@ -15,7 +15,6 @@ from gi.repository import Gdk, GdkPixbuf, Gio, GLib  # type: ignore
 from speedoflight.constants import PNG_FORMAT
 from speedoflight.models import DesktopPoint
 from speedoflight.services.desktop.base_interface import BaseInterface
-from speedoflight.utils import get_data_path
 
 DBUS_INTERFACE_SCREENSHOT = "org.freedesktop.portal.Screenshot"
 DBUS_METHOD_SCREENSHOT = "Screenshot"

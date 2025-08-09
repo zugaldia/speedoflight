@@ -7,7 +7,7 @@ from typing import Any
 import mcp.types as types
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 from gi.repository import GLib, GObject  # type: ignore
-from mcp import ClientSession, Implementation, ServerCapabilities, types
+from mcp import ClientSession, Implementation, ServerCapabilities
 from mcp.client.session import (
     _default_elicitation_callback,
     _default_list_roots_callback,

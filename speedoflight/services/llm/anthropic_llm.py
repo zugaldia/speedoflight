@@ -115,23 +115,21 @@ class AnthropicLlm(BaseLlmService):
         # We ignore the temperature value because it's incompatible with
         # enabling thinking:
         # https://docs.anthropic.com/en/docs/build-with-claude/extended-thinking#feature-compatibility
-        result: LegacyAPIResponse[BetaMessage] = (
-            await self._client.beta.messages.with_raw_response.create(
-                max_tokens=self._config.max_tokens,
-                system=self._get_system_prompt(
-                    computer_use=self._config.enable_computer_use
-                ),
-                thinking=BetaThinkingConfigEnabledParam(
-                    type="enabled", budget_tokens=1024
-                ),
-                messages=messages,
-                model=self._config.model,
-                tools=native_tools + cloud_tools,
-                betas=betas,
-                tool_choice=BetaToolChoiceAutoParam(
-                    type="auto", disable_parallel_tool_use=True
-                ),
-            )
+        result: LegacyAPIResponse[
+            BetaMessage
+        ] = await self._client.beta.messages.with_raw_response.create(
+            max_tokens=self._config.max_tokens,
+            system=self._get_system_prompt(
+                computer_use=self._config.enable_computer_use
+            ),
+            thinking=BetaThinkingConfigEnabledParam(type="enabled", budget_tokens=1024),
+            messages=messages,
+            model=self._config.model,
+            tools=native_tools + cloud_tools,
+            betas=betas,
+            tool_choice=BetaToolChoiceAutoParam(
+                type="auto", disable_parallel_tool_use=True
+            ),
         )
 
         message: BetaMessage = result.parse()

@@ -61,7 +61,7 @@ class XdotoolService(CommandService):
             if key:
                 quoted_key = shlex.quote(key)
                 parts.append(f"keyup {quoted_key}")
-            command = f"{XDOTOOL} {" ".join(parts)}"
+            command = f"{XDOTOOL} {' '.join(parts)}"
             return await self.execute(command)
         except Exception as e:
             return True, f"Error left clicking: {e}"
@@ -97,7 +97,7 @@ class XdotoolService(CommandService):
             if text:
                 quoted_text = shlex.quote(text)
                 parts.append(f"keyup {quoted_text}")
-            command = f"{XDOTOOL} {" ".join(parts)}"
+            command = f"{XDOTOOL} {' '.join(parts)}"
             return await self.execute(command)
         except Exception as e:
             return True, f"Error scrolling: {e}"
@@ -125,7 +125,7 @@ class XdotoolService(CommandService):
             if key:
                 quoted_key = shlex.quote(key)
                 parts.append(f"keyup {quoted_key}")
-            command = f"{XDOTOOL} {" ".join(parts)}"
+            command = f"{XDOTOOL} {' '.join(parts)}"
             return await self.execute(command)
         except Exception as e:
             return True, f"Error right clicking: {e}"
@@ -145,7 +145,7 @@ class XdotoolService(CommandService):
             if key:
                 quoted_key = shlex.quote(key)
                 parts.append(f"keyup {quoted_key}")
-            command = f"{XDOTOOL} {" ".join(parts)}"
+            command = f"{XDOTOOL} {' '.join(parts)}"
             return await self.execute(command)
         except Exception as e:
             return True, f"Error middle clicking: {e}"
@@ -165,7 +165,7 @@ class XdotoolService(CommandService):
             if key:
                 quoted_key = shlex.quote(key)
                 parts.append(f"keyup {quoted_key}")
-            command = f"{XDOTOOL} {" ".join(parts)}"
+            command = f"{XDOTOOL} {' '.join(parts)}"
             return await self.execute(command)
         except Exception as e:
             return True, f"Error double clicking: {e}"
@@ -185,7 +185,7 @@ class XdotoolService(CommandService):
             if key:
                 quoted_key = shlex.quote(key)
                 parts.append(f"keyup {quoted_key}")
-            command = f"{XDOTOOL} {" ".join(parts)}"
+            command = f"{XDOTOOL} {' '.join(parts)}"
             return await self.execute(command)
         except Exception as e:
             return True, f"Error triple clicking: {e}"

@@ -25,7 +25,6 @@ from speedoflight.services.desktop.clipboard_service import ClipboardService
 from speedoflight.services.desktop.remote_interface import RemoteInterface
 from speedoflight.services.desktop.screenshot_interface import ScreenshotInterface
 from speedoflight.services.desktop.xdotool_service import XdotoolService
-from speedoflight.utils import is_empty
 
 
 class DesktopService(BaseService):
@@ -242,9 +241,9 @@ class DesktopService(BaseService):
         if coordinate is None:
             return None
         if not isinstance(coordinate, list) or len(coordinate) != 2:
-            raise ValueError(f"The `coordinate` parameter must be a tuple of length 2.")
+            raise ValueError("The `coordinate` parameter must be a tuple of length 2.")
         if not all(isinstance(i, int) and i >= 0 for i in coordinate):
-            raise ValueError(f"The `coordinate` parameter must have non-negative ints.")
+            raise ValueError("The `coordinate` parameter must have non-negative ints.")
         return self.from_model_to_desktop(
             DesktopPoint(x=coordinate[0], y=coordinate[1])
         )
