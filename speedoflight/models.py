@@ -46,6 +46,7 @@ class AnthropicConfig(BaseLLMConfig):
     max_tokens: int = 8192
     api_key: str
     enable_web_search: bool = False
+    enable_computer_use: bool = False
 
 
 class BaseMCPConfig(BaseModel):
@@ -79,6 +80,10 @@ class AppConfig(BaseModel):
     mcps: Optional[dict[str, MCPConfig]] = None
     max_iterations: int = 25
 
+    # E.g. "DP-6". Default monitor to use for screenshots in a multi-monitor setup.
+    # If not set, the first monitor found will be used.
+    target_monitor: Optional[str] = None
+
 
 #
 # Messages
@@ -91,19 +96,28 @@ class BaseBlock(BaseModel):
 
 
 class TextBlockRequest(BaseBlock):
+    type: Literal["text"] = "text"
     text: str
 
 
 class ImageBlockRequest(BaseBlock):
+    type: Literal["image"] = "image"
     encoded: str
 
 
 class TextBlockResponse(BaseBlock):
+    type: Literal["text"] = "text"
     text: str
     text_html: Optional[str] = None
 
 
+class ThinkingBlockResponse(BaseBlock):
+    type: Literal["thinking"] = "thinking"
+    text: str
+
+
 class ImageBlockResponse(BaseBlock):
+    type: Literal["image"] = "image"
     encoded: str
 
 
@@ -113,6 +127,7 @@ class ToolEnvironment(Enum):
 
 
 class ToolInputResponse(BaseBlock):
+    type: Literal["tool_input"] = "tool_input"
     call_id: str
     environment: ToolEnvironment
     name: str
@@ -123,6 +138,7 @@ class ToolTextOutputRequest(BaseBlock):
     """Represents tool output from a local execution (e.g. MCP) that needs
     to be added to the next LLM request."""
 
+    type: Literal["tool_text_output"] = "tool_text_output"
     call_id: str
     name: str
     text: str
@@ -133,6 +149,7 @@ class ToolTextOutputResponse(BaseBlock):
     """Represents tool output from a server execution (e.g. web search) that
     does not need to be added to the next LLM request."""
 
+    type: Literal["tool_text_output"] = "tool_text_output"
     call_id: str
     name: str
     text: str
@@ -147,6 +164,7 @@ class ImageMimeType(Enum):
 
 
 class ToolImageOutputRequest(BaseBlock):
+    type: Literal["tool_image_output"] = "tool_image_output"
     call_id: str
     name: str
     data: str  # The base64-encoded image data.
@@ -191,10 +209,15 @@ class RequestMessage(BaseMessage):
     """Represents content that is provided to the LLM."""
 
     content: list[
-        TextBlockRequest
-        | ImageBlockRequest
-        | ToolTextOutputRequest
-        | ToolImageOutputRequest
+        Annotated[
+            Union[
+                TextBlockRequest,
+                ImageBlockRequest,
+                ToolTextOutputRequest,
+                ToolImageOutputRequest,
+            ],
+            Field(discriminator="type"),
+        ]
     ]
 
 
@@ -211,10 +234,16 @@ class ResponseMessage(BaseMessage):
     stop_reason: Optional[StopReason] = None
     stop_sequence: Optional[str] = None
     content: list[
-        TextBlockResponse
-        | ImageBlockResponse
-        | ToolInputResponse
-        | ToolTextOutputResponse
+        Annotated[
+            Union[
+                TextBlockResponse,
+                ThinkingBlockResponse,
+                ImageBlockResponse,
+                ToolInputResponse,
+                ToolTextOutputResponse,
+            ],
+            Field(discriminator="type"),
+        ]
     ]
 
 
@@ -237,3 +266,13 @@ class AgentRequest(BaseModel):
 class AgentResponse(BaseModel):
     is_error: bool
     message: Optional[SolMessage] = None
+
+
+#
+# Desktop
+#
+
+
+class DesktopPoint(BaseModel):
+    x: int
+    y: int
