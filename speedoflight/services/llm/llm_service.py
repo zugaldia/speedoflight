@@ -11,15 +11,17 @@ from speedoflight.models import (
 )
 from speedoflight.services.base_service import BaseService
 from speedoflight.services.configuration import ConfigurationService
+from speedoflight.services.desktop import DesktopService
 from speedoflight.services.llm.anthropic_llm import AnthropicLlm
 from speedoflight.services.llm.base_llm import BaseLlmService
 from speedoflight.services.llm.ollama_llm import OllamaLlm
 
 
 class LlmService(BaseService):
-    def __init__(self, configuration: ConfigurationService):
+    def __init__(self, configuration: ConfigurationService, desktop: DesktopService):
         super().__init__(service_name="llm")
         self._configuration = configuration
+        self._desktop = desktop
         self._client = self._create_llm_client()
         self._logger.info("Initialized.")
 
@@ -39,10 +41,9 @@ class LlmService(BaseService):
                 if isinstance(base_config, AnthropicConfig)
                 else AnthropicConfig(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
             )
-            return AnthropicLlm(llm_config)
+            return AnthropicLlm(llm_config, self._desktop)
         else:
-            # Default to Ollama
-            llm_config = (
+            llm_config = (  # Default to Ollama
                 base_config if isinstance(base_config, OllamaConfig) else OllamaConfig()
             )
             return OllamaLlm(llm_config)
