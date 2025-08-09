@@ -1,2 +1,2 @@
 PyGObject-stubs==2.13.0
-ruff==0.12.5
+ruff==0.12.7
