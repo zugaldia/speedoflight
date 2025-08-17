@@ -22,6 +22,7 @@ You can extend its functionality using the [Model Context Protocol](https://mode
 Clone this repo, install the dependencies in a virtual environment, and launch the app with Python:
 
 ```bash
+$ sudo apt install gir1.2-gtksource-5
 $ git clone git@github.com:zugaldia/speedoflight.git
 $ cd speedoflight
 $ python3 -m venv venv

@@ -14,6 +14,7 @@ llm = "ollama"
 [llms]
 
 [llms.ollama]
+type = "ollama"
 model = "mistral-small:latest"
 """.strip()
 
